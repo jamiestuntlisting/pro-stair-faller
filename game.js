@@ -583,6 +583,17 @@ class PlayScene extends Phaser.Scene {
                     g.fillStyle(0x1a1a1a, 1);
                     g.fillCircle(koX + H*0.26, cy - H*0.008, H*0.013);
                     g.fillCircle(koX + H*0.24, cy + H*0.015, H*0.013);
+                    // Blood pool spreading under the body
+                    if (settleT > 0) {
+                        const bloodSpread = Math.min(settleT * 0.4, 1.0);
+                        const bloodW = H * 0.12 * bloodSpread;
+                        const bloodH = H * 0.04 * bloodSpread;
+                        g.fillStyle(0x8b0000, 0.6);
+                        g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW, bloodH);
+                        // Darker center
+                        g.fillStyle(0x5a0000, 0.5);
+                        g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW * 0.5, bloodH * 0.6);
+                    }
                     // Stars circling head (unconscious)
                     if (settleT > 0) {
                         for (let i = 0; i < 3; i++) {
@@ -602,8 +613,8 @@ class PlayScene extends Phaser.Scene {
                 } else {
                     // Crawling phase: t=0.3 to t=1.5, then collapse
                     const crawlTime = Math.max(0, t - 0.5);
-                    const collapsed = crawlTime > 2.0;
-                    const crawlDist = Math.min(crawlTime, 2.0) * H * 0.25;
+                    const collapsed = crawlTime > 4.0;
+                    const crawlDist = Math.min(crawlTime, 4.0) * H * 0.20;
                     const crawlX = crew2X + 100 + crawlDist;
                     const bob = collapsed ? 0 : Math.sin(t * 7) * 5;
                     const limb = collapsed ? 0 : Math.sin(t * 5);
@@ -689,25 +700,23 @@ class PlayScene extends Phaser.Scene {
                 // Torso
                 g.lineStyle(H*0.10, dirCol, 1);
                 g.beginPath(); g.moveTo(dirX, dirHipY); g.lineTo(dirX, dirShY); g.strokePath();
-                // LEFT BROKEN ARM — forearm dangling
-                const shake = Math.sin(t * 10) * H*0.02;
+                // ARMS UP — panicking, waving in the air
+                const wave = Math.sin(t * 6) * H*0.03;
+                // Left arm — raised up, shaking
                 g.lineStyle(H*0.026, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.12, dirShY + H*0.10); g.strokePath();
+                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.14, dirShY - H*0.12); g.strokePath();
                 g.lineStyle(H*0.022, skin, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.12, dirShY + H*0.10); g.lineTo(dirX - H*0.14 + shake, dirShY + H*0.22); g.strokePath();
+                g.beginPath(); g.moveTo(dirX - H*0.14, dirShY - H*0.12); g.lineTo(dirX - H*0.16 + wave, dirShY - H*0.24); g.strokePath();
                 g.fillStyle(skin, 1);
-                g.fillCircle(dirX - H*0.14 + shake, dirShY + H*0.22, H*0.012);
-                // RIGHT BROKEN ARM — forearm dangling, wiggling
-                const wiggle = Math.sin(t * 12) * H*0.03;
+                g.fillCircle(dirX - H*0.16 + wave, dirShY - H*0.24, H*0.012);
+                // Right arm — raised up, shaking opposite phase
+                const wave2 = Math.sin(t * 6 + 1.5) * H*0.03;
                 g.lineStyle(H*0.026, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(dirX + H*0.12, dirShY + H*0.10); g.strokePath();
+                g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(dirX + H*0.14, dirShY - H*0.14); g.strokePath();
                 g.lineStyle(H*0.022, skin, 1);
-                g.beginPath();
-                g.moveTo(dirX + H*0.12, dirShY + H*0.10);
-                g.lineTo(dirX + H*0.10 + wiggle, dirShY + H*0.22); // forearm dangles down, wiggling
-                g.strokePath();
+                g.beginPath(); g.moveTo(dirX + H*0.14, dirShY - H*0.14); g.lineTo(dirX + H*0.16 + wave2, dirShY - H*0.26); g.strokePath();
                 g.fillStyle(skin, 1);
-                g.fillCircle(dirX + H*0.10 + wiggle, dirShY + H*0.22, H*0.012);
+                g.fillCircle(dirX + H*0.16 + wave2, dirShY - H*0.26, H*0.012);
                 // Neck + Head
                 g.fillStyle(skin, 1);
                 g.fillRect(dirX - H*0.014, dirShY - H*0.05, H*0.028, H*0.05);
