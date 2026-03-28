@@ -24,7 +24,7 @@ const CONFIG = {
     BASE_FRICTION: 550,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
-    MAX_ENERGY_DRAIN_RATE: 0.38,
+    MAX_ENERGY_DRAIN_RATE: 0.55,
     SLOPE_DRAIN_REDUCTION: 0.6,
     BOOST_ACCEL: 90,
     BOOST_ENERGY_MULT: 1.4,
@@ -58,6 +58,35 @@ const CONFIG = {
 // ============================================================
 // LEVELS
 // ============================================================
+// Per-level costumes and locations
+const COSTUMES = [
+    { name: 'Chicken Suit', shirt: 0xddcc22, pants: 0xccbb11, hat: 'comb', prop: 'rubber_chicken' },
+    { name: 'Superhero', shirt: 0xcc2222, pants: 0x2222cc, hat: 'mask', prop: 'cape' },
+    { name: 'Gorilla Suit', shirt: 0x5a3a1a, pants: 0x4a2a0a, hat: 'gorilla', prop: 'banana' },
+    { name: 'Tuxedo', shirt: 0x1a1a1a, pants: 0x1a1a1a, hat: 'tophat', prop: 'cane' },
+    { name: 'Viking', shirt: 0x8b6914, pants: 0x5a4a2a, hat: 'horns', prop: 'shield' },
+    { name: 'Astronaut', shirt: 0xeeeeee, pants: 0xdddddd, hat: 'helmet', prop: 'flag' },
+    { name: 'Pirate', shirt: 0xcc4444, pants: 0x2a2a2a, hat: 'pirate', prop: 'sword' },
+    { name: 'Clown', shirt: 0xff6622, pants: 0x22cc44, hat: 'rainbow', prop: 'horn' },
+    { name: 'Chef', shirt: 0xffffff, pants: 0x2a2a2a, hat: 'chef', prop: 'pan' },
+    { name: 'Wizard', shirt: 0x4422aa, pants: 0x331188, hat: 'wizard', prop: 'wand' },
+    { name: 'Luchador', shirt: 0xee2288, pants: 0xeecc22, hat: 'lucha', prop: 'belt' },
+    { name: 'Scuba Diver', shirt: 0x1a1a1a, pants: 0x1a1a1a, hat: 'goggles', prop: 'flipper' },
+];
+const LOCATIONS = [
+    { name: 'Suburban Home', bg: 0x1c1c24, floor: 0x555566, wall: 0x3a3a4a, stair: 0x666677 },
+    { name: 'Office Building', bg: 0x1a2028, floor: 0x606878, wall: 0x2a3040, stair: 0x5a6270 },
+    { name: 'Castle', bg: 0x1a1820, floor: 0x5a5560, wall: 0x3a3540, stair: 0x6a6570 },
+    { name: 'Spaceship', bg: 0x0a0a18, floor: 0x3a3a55, wall: 0x1a1a30, stair: 0x4a4a66 },
+    { name: 'Jungle Temple', bg: 0x0a1a0a, floor: 0x4a5a3a, wall: 0x2a3a1a, stair: 0x6a7a4a },
+    { name: 'Mall', bg: 0x201818, floor: 0x7a6a5a, wall: 0x4a3a2a, stair: 0x8a7a6a },
+    { name: 'Haunted Mansion', bg: 0x12101a, floor: 0x4a4052, wall: 0x2a2232, stair: 0x5a5262 },
+    { name: 'Volcano Lair', bg: 0x1a0a0a, floor: 0x5a3a2a, wall: 0x3a1a0a, stair: 0x6a4a3a },
+    { name: 'Underwater Base', bg: 0x0a1a2a, floor: 0x3a5a6a, wall: 0x1a3a4a, stair: 0x4a6a7a },
+    { name: 'Ski Lodge', bg: 0x1a1a22, floor: 0x6a5a4a, wall: 0x4a3a2a, stair: 0x8a7a6a },
+    { name: 'Prison', bg: 0x181818, floor: 0x555555, wall: 0x333333, stair: 0x666666 },
+    { name: 'Cruise Ship', bg: 0x0a1420, floor: 0x5a6a7a, wall: 0x3a4a5a, stair: 0x6a7a8a },
+];
 const LEVELS = [
     // L1-2: Tutorial — very few stairs
     { name: 'Baby Steps', angleDeg: 30, numSteps: 2, flatLength: 600, markOffset: 300 },
@@ -132,6 +161,8 @@ class PlayScene extends Phaser.Scene {
         this.takeNumber = data.takeNumber || 1;
         this.levelData = buildLevel(LEVELS[this.currentLevel % LEVELS.length]);
         SEGMENTS = this.levelData.segments;
+        this.costume = COSTUMES[this.currentLevel % COSTUMES.length];
+        this.location = LOCATIONS[this.currentLevel % LOCATIONS.length];
     }
 
     create() {
@@ -186,13 +217,19 @@ class PlayScene extends Phaser.Scene {
         this.meterLabel = this.add.text(44, 78, 'POWER', {
             fontSize: '12px', fontFamily: 'Arial, sans-serif', color: '#8888aa',
         }).setOrigin(0.5, 1).setScrollFactor(0);
-        this.add.text(140, 18, 'ENERGY', { fontSize: '11px', fontFamily: 'Arial', color: '#66bb99' }).setOrigin(0, 1).setScrollFactor(0);
+        this.add.text(140, 18, 'ROLL ENERGY', { fontSize: '11px', fontFamily: 'Arial', color: '#66bb99' }).setOrigin(0, 1).setScrollFactor(0);
         this.add.text(440, 18, 'HEALTH', { fontSize: '11px', fontFamily: 'Arial', color: '#bb7777' }).setOrigin(0, 1).setScrollFactor(0);
 
         const lvl = this.currentLevel + 1;
-        this.add.text(CONFIG.WIDTH / 2, 52, `Level ${lvl}: ${this.levelData.name}`, {
-            fontSize: '24px', fontFamily: 'Georgia, serif', color: '#aaaacc',
+        const loc = this.location || LOCATIONS[0];
+        const cos = this.costume || COSTUMES[0];
+        this.add.text(CONFIG.WIDTH / 2, 45, `Level ${lvl}: ${this.levelData.name}`, {
+            fontSize: '22px', fontFamily: 'Georgia, serif', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 4,
+        }).setOrigin(0.5).setScrollFactor(0);
+        this.add.text(CONFIG.WIDTH / 2, 68, `${loc.name}  •  ${cos.name}  •  ${this.levelData.angleDeg}°  •  ${this.levelData.steps.length} stairs`, {
+            fontSize: '12px', fontFamily: 'Arial', color: '#777799',
+            stroke: '#000000', strokeThickness: 2,
         }).setOrigin(0.5).setScrollFactor(0);
         // Slate — "Take X"
         const slateX = CONFIG.WIDTH - 100, slateY = 50;
@@ -352,10 +389,14 @@ class PlayScene extends Phaser.Scene {
         g.clear();
         const ld = this.levelData;
         const steps = ld.steps;
-        const depth = 120; // visual thickness under the stairs
+        const depth = 120;
+        const loc = this.location || LOCATIONS[0];
+
+        // Set background color for this location
+        this.cameras.main.setBackgroundColor(loc.bg);
 
         // ---- Stair structure underneath (dark fill) ----
-        g.fillStyle(0x1a1a22, 1);
+        g.fillStyle(loc.wall, 1);
         g.beginPath();
         g.moveTo(ld.startX, ld.startY);
         for (const s of steps) {
@@ -369,7 +410,7 @@ class PlayScene extends Phaser.Scene {
         g.fillPath();
 
         // Stair stringer (side beam visible)
-        g.lineStyle(3, 0x3a3a48, 0.6);
+        g.lineStyle(3, loc.wall, 0.6);
         g.beginPath();
         g.moveTo(ld.startX, ld.startY + depth * 0.3);
         g.lineTo(ld.endX, ld.endY + depth * 0.3);
@@ -384,17 +425,18 @@ class PlayScene extends Phaser.Scene {
             g.fillStyle((riserShade << 16) | ((riserShade - 5) << 8) | (riserShade + 5), 1);
             g.fillRect(s.x, s.y + s.h, s.w, -s.h < 0 ? 0 : s.h);
 
-            // Actually the riser is the vertical part below the tread leading to next step
-            // Draw it from (s.x, s.y) down to (s.x, s.y + s.h) at width s.w
-            g.fillStyle(0x585868, 1);
+            // Riser
+            g.fillStyle(loc.stair, 1);
             g.fillRect(s.x, s.y, s.w, s.h);
 
-            // Tread (horizontal surface — lighter, this is what you step on)
-            g.fillStyle(0x727282, 1);
-            g.fillRect(s.x, s.y, s.w + 1, 6); // thin tread surface on top
+            // Tread surface (lighter)
+            const treadColor = ((loc.stair >> 16 & 0xff) * 1.2 | 0) << 16 | ((loc.stair >> 8 & 0xff) * 1.2 | 0) << 8 | ((loc.stair & 0xff) * 1.2 | 0);
+            g.fillStyle(Math.min(treadColor, 0xffffff), 1);
+            g.fillRect(s.x, s.y, s.w + 1, 6);
 
-            // Tread nosing (front edge of each step — slightly brighter)
-            g.fillStyle(0x8a8a98, 1);
+            // Tread nosing (brighter edge)
+            const nosingColor = ((loc.stair >> 16 & 0xff) * 1.35 | 0) << 16 | ((loc.stair >> 8 & 0xff) * 1.35 | 0) << 8 | ((loc.stair & 0xff) * 1.35 | 0);
+            g.fillStyle(Math.min(nosingColor, 0xffffff), 1);
             g.fillRect(s.x, s.y, s.w + 1, 2);
 
             // Anti-slip texture (subtle lines on tread)
@@ -418,15 +460,17 @@ class PlayScene extends Phaser.Scene {
         // ---- Floor ----
         const floorY = ld.endY;
         // Floor surface
-        g.fillStyle(0x5a5a68, 1);
+        g.fillStyle(loc.floor, 1);
         g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 500, 8);
 
         // Floor body
-        g.fillStyle(0x484858, 1);
+        const floorDark = ((loc.floor >> 16 & 0xff) * 0.8 | 0) << 16 | ((loc.floor >> 8 & 0xff) * 0.8 | 0) << 8 | ((loc.floor & 0xff) * 0.8 | 0);
+        g.fillStyle(floorDark, 1);
         g.fillRect(ld.endX, floorY + 8, ld.flatEndX - ld.endX + 500, depth);
 
         // Floor surface highlight
-        g.fillStyle(0x6a6a78, 1);
+        const floorLight = ((loc.floor >> 16 & 0xff) * 1.15 | 0) << 16 | ((loc.floor >> 8 & 0xff) * 1.15 | 0) << 8 | ((loc.floor & 0xff) * 1.15 | 0);
+        g.fillStyle(Math.min(floorLight, 0xffffff), 1);
         g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 500, 2);
 
         // Floor texture — subtle concrete grain
@@ -1070,8 +1114,11 @@ class PlayScene extends Phaser.Scene {
 
     drawStanding(g, x, y) {
         const H = CONFIG.PERSON_HEIGHT;
-        const skin = 0xd4a87c, skinDark = 0xc09670, shirt = 0x3b5998, shirtDark = 0x2d4578;
-        const pants = 0x33333f, pantsDark = 0x282832, hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const c = this.costume || COSTUMES[0];
+        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
+        const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
+        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const headR = H * 0.058;
         const sw = H * 0.05;
 
@@ -1203,8 +1250,11 @@ class PlayScene extends Phaser.Scene {
     }
 
     drawLying(g, x, y) {
-        const skin = 0xd4a87c, skinDark = 0xc09670, shirt = 0x3b5998, shirtDark = 0x2d4578;
-        const pants = 0x33333f, pantsDark = 0x282832, hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const c = this.costume || COSTUMES[0];
+        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
+        const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
+        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
         // Bigger crashes = player lies still longer (crash tier multiplies the beat)
         const beatMult = this.crashTier > 0 ? 1 + this.crashTier * 0.4 : 1;
@@ -1427,9 +1477,10 @@ class PlayScene extends Phaser.Scene {
 
     drawRolling(g, x, y, rotation) {
         const r = CONFIG.PLAYER_RADIUS;
+        const c = this.costume || COSTUMES[0];
         const skin = 0xd4a87c;
-        const shirt = 0x3b5998, shirtDark = 0x2d4578;
-        const pants = 0x33333f, hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
+        const pants = c.pants, hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
