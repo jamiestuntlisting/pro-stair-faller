@@ -14,9 +14,9 @@ const CONFIG = {
     // Physics (tuned for larger world)
     METER_OSCILLATION_SPEED: 3.5,
     METER_POWER_CURVE: 1.3,
-    MIN_POWER_FLOOR: 0.25,    // meter value can't go below this — prevents silly low power
-    MAX_INITIAL_VELOCITY: 1800,
-    MAX_ENERGY: 280,
+    MIN_POWER_FLOOR: 0.35,    // meter value can't go below this — prevents silly low power
+    MAX_INITIAL_VELOCITY: 2200,
+    MAX_ENERGY: 340,
     BASE_FRICTION: 520,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
@@ -31,7 +31,7 @@ const CONFIG = {
     JUMP_ENERGY_COST_FRAC: 0.10,
     JUMP_COOLDOWN_MS: 500,
 
-    PIXELS_PER_METER: 100,
+    PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
 
     BASE_HEALTH: 100,
@@ -761,16 +761,16 @@ class PlayScene extends Phaser.Scene {
                 g.fillCircle(shoulderX + H*0.02, shoulderY + H*0.22, H*0.014);
             }
         } else if (panic === 1) {
-            // Startled — hands up defensively
-            g.lineStyle(H*0.025, bodyCol, 1);
+            // Annoyed — hands on hips, leaning back
+            g.lineStyle(H*0.026, bodyCol, 1);
             g.beginPath();
-            g.moveTo(shoulderX - H*0.08, shoulderY); g.lineTo(shoulderX - H*0.10, shoulderY - H*0.06);
-            g.moveTo(shoulderX + H*0.08, shoulderY); g.lineTo(shoulderX + H*0.10, shoulderY - H*0.06);
+            g.moveTo(shoulderX - H*0.08, shoulderY); g.lineTo(shoulderX - H*0.10, shoulderY + H*0.10);
+            g.moveTo(shoulderX + H*0.08, shoulderY); g.lineTo(shoulderX + H*0.10, shoulderY + H*0.10);
             g.strokePath();
             g.lineStyle(H*0.020, skin, 1);
             g.beginPath();
-            g.moveTo(shoulderX - H*0.10, shoulderY - H*0.06); g.lineTo(shoulderX - H*0.12, shoulderY - H*0.10);
-            g.moveTo(shoulderX + H*0.10, shoulderY - H*0.06); g.lineTo(shoulderX + H*0.12, shoulderY - H*0.10);
+            g.moveTo(shoulderX - H*0.10, shoulderY + H*0.10); g.lineTo(hipX - H*0.04, hipY);
+            g.moveTo(shoulderX + H*0.10, shoulderY + H*0.10); g.lineTo(hipX + H*0.04, hipY);
             g.strokePath();
         } else {
             // Angry — one arm pointing LEFT (at player), other fist clenched
@@ -1148,39 +1148,26 @@ class PlayScene extends Phaser.Scene {
                 g.lineStyle(H*0.025, skin, 1);
                 g.beginPath(); g.moveTo(elbowX, elbowY); g.lineTo(wristX, wristY); g.strokePath();
 
-                // CARTOON FIST — wide horizontal block, clearly distinct from the forearm
-                // From side view: we see the back of the hand. Fist is WIDER than the arm.
-                const fistW = H*0.06;   // much wider than forearm
-                const fistH = H*0.045;  // chunky
+                // FIST — simple circle, bigger than the arm
+                const fistR = H*0.028;
                 const fistCX = wristX;
                 const fistCY = wristY;
                 g.fillStyle(skin, 1);
-                // Main fist — rounded rectangle shape
-                g.fillRect(fistCX - fistW/2, fistCY - fistH/2, fistW, fistH);
-                g.fillCircle(fistCX - fistW/2, fistCY, fistH/2);   // left round edge
-                g.fillCircle(fistCX + fistW/2, fistCY, fistH/2);   // right round edge
-                // Knuckle highlights
-                g.fillStyle(skinDark, 0.15);
-                g.fillCircle(fistCX - fistW*0.25, fistCY - fistH*0.15, fistH*0.2);
-                g.fillCircle(fistCX, fistCY - fistH*0.15, fistH*0.2);
-                g.fillCircle(fistCX + fistW*0.25, fistCY - fistH*0.15, fistH*0.2);
-                // Finger curl line across bottom of fist
-                g.lineStyle(1.5, skinDark, 0.25);
-                g.beginPath();
-                g.moveTo(fistCX - fistW*0.35, fistCY + fistH*0.15);
-                g.lineTo(fistCX + fistW*0.35, fistCY + fistH*0.15);
-                g.strokePath();
+                g.fillCircle(fistCX, fistCY, fistR);
+                // Slight shadow on bottom
+                g.fillStyle(skinDark, 0.2);
+                g.fillCircle(fistCX, fistCY + fistR*0.25, fistR*0.7);
 
-                // THUMB — thick oval pointing UP from the LEFT edge of the fist
+                // THUMB — pointing UP from the top-left of the fist
                 if (armProg > 0.3) {
                     const tp = (armProg - 0.3) / 0.7;
                     const thumbLen = H*0.05 * tp;
-                    const thumbW = H*0.025;   // nice and thick
-                    const thumbX = fistCX - fistW*0.42;
-                    const thumbTopY = fistCY - fistH/2 - thumbLen;
+                    const thumbW = H*0.022;
+                    const thumbX = fistCX - fistR*0.6;
+                    const thumbTopY = fistCY - fistR - thumbLen;
                     g.fillStyle(skin, 1);
                     // Thumb shaft
-                    g.fillRect(thumbX - thumbW/2, thumbTopY, thumbW, thumbLen + fistH*0.3);
+                    g.fillRect(thumbX - thumbW/2, thumbTopY, thumbW, thumbLen + fistR*0.5);
                     // Rounded tip
                     g.fillCircle(thumbX, thumbTopY, thumbW/2);
                     // Slight shadow on thumb
@@ -1494,10 +1481,10 @@ class PlayScene extends Phaser.Scene {
         }
         // If on flat section (past endX), playerWorldY is already correct (flat ground Y)
 
-        const dm = Math.abs(this.playerWorldX - ld.markX) / CONFIG.PIXELS_PER_METER;
+        const dm = Math.abs(this.playerWorldX - ld.markX) / CONFIG.PIXELS_PER_FOOT;
         const hc = CONFIG.LEVEL_BASE_COST + dm * CONFIG.ACCURACY_COST_MULT;
         this.currentHealth = Math.max(0, this.currentHealth - hc);
-        this.scoreData = { distMeters: dm, isPerfect: Math.abs(this.playerWorldX - ld.markX) < CONFIG.PERFECT_THRESHOLD_PX, crashed: false, healthCost: hc };
+        this.scoreData = { distFeet: dm, isPerfect: Math.abs(this.playerWorldX - ld.markX) < CONFIG.PERFECT_THRESHOLD_PX, crashed: false, healthCost: hc };
         this.showScore();
     }
 
@@ -1512,13 +1499,12 @@ class PlayScene extends Phaser.Scene {
             simVel = Math.max(0, simVel - flatFric * dt);
             simDist += simVel * dt;
         }
-        // Place the player past the camera but NOT too far — keep crash scene in view
-        // Cap the distance so the player stays within ~3m of the camera
-        this.playerWorldX = this.levelData.cameraX + Math.min(simDist, 300);
+        // Place the player just past the camera — they stop in the wreckage, not far away
+        this.playerWorldX = this.levelData.cameraX + 60;
         this.playerWorldY = this.levelData.endY;
 
         const opx = simDist;
-        const dm = Math.abs(this.playerWorldX - this.levelData.markX) / CONFIG.PIXELS_PER_METER;
+        const dm = Math.abs(this.playerWorldX - this.levelData.markX) / CONFIG.PIXELS_PER_FOOT;
         const th = CONFIG.CRASH_TIER_THRESHOLDS;
         let tier = 1; for (let i = th.length-1; i >= 0; i--) { if (opx >= th[i]) { tier = i+1; break; } }
         tier = Math.min(tier, 5); this.crashTier = tier; this.crashAnimTime = 0;
@@ -1526,18 +1512,18 @@ class PlayScene extends Phaser.Scene {
         const sp = CONFIG.CRASH_TIER_SCORE_PENALTIES[tier-1];
         const hc = CONFIG.LEVEL_BASE_COST + (dm+sp) * CONFIG.ACCURACY_COST_MULT + chc;
         this.currentHealth = Math.max(0, this.currentHealth - hc);
-        this.scoreData = { distMeters: dm+sp, isPerfect: false, crashed: true, crashTier: tier, healthCost: hc };
+        this.scoreData = { distFeet: dm+sp, isPerfect: false, crashed: true, crashTier: tier, healthCost: hc };
         this.showScore();
     }
 
     showScore() {
         const d = this.scoreData;
-        this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${d.distMeters.toFixed(1)}m from mark`).setVisible(true);
+        this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${d.distFeet.toFixed(1)}ft from mark`).setVisible(true);
         if (d.crashed) {
             const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
             this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
         }
-        const earned = d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distMeters * 8));
+        const earned = d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5));
         this.currency += earned;
         this.showingScore = false;
         this.time.delayedCall(CONFIG.THUMBS_UP_DURATION, () => {
