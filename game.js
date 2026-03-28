@@ -55,14 +55,24 @@ const CONFIG = {
 // LEVELS
 // ============================================================
 const LEVELS = [
-    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1400, markOffset: 750 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1300, markOffset: 650 },
-    { name: 'Steep Drop', angleDeg: 48, numSteps: 12, flatLength: 1600, markOffset: 900 },
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 22, flatLength: 1200, markOffset: 620 },
-    { name: 'Vertigo', angleDeg: 55, numSteps: 10, flatLength: 1800, markOffset: 1000 },
-    { name: 'Barely a Ramp', angleDeg: 18, numSteps: 24, flatLength: 1100, markOffset: 500 },
-    { name: 'The Goldilocks', angleDeg: 38, numSteps: 16, flatLength: 1350, markOffset: 720 },
-    { name: 'Nosedive', angleDeg: 52, numSteps: 11, flatLength: 1700, markOffset: 950 },
+    // L1-2: Tutorial — very few stairs
+    { name: 'Baby Steps', angleDeg: 30, numSteps: 2, flatLength: 600, markOffset: 300 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 5, flatLength: 800, markOffset: 400 },
+    // L3-4: Short staircases
+    { name: 'The Basics', angleDeg: 35, numSteps: 8, flatLength: 1000, markOffset: 500 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 10, flatLength: 1000, markOffset: 500 },
+    // L5-6: Medium — stairs get longer
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 14, flatLength: 1200, markOffset: 650 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 12, flatLength: 1400, markOffset: 750 },
+    // L7-8: Long staircases
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 20, flatLength: 1200, markOffset: 620 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 16, flatLength: 1600, markOffset: 900 },
+    // L9-10: Very long
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 28, flatLength: 1100, markOffset: 500 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 30, flatLength: 1800, markOffset: 1000 },
+    // L11-12: Extreme
+    { name: 'Nosedive', angleDeg: 52, numSteps: 24, flatLength: 1700, markOffset: 950 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 40, flatLength: 2000, markOffset: 1100 },
 ];
 
 function buildLevel(levelDef) {
@@ -113,6 +123,8 @@ class PlayScene extends Phaser.Scene {
         this.currentHealth = data.health != null ? data.health : CONFIG.BASE_HEALTH;
         this.currentLevel = data.level != null ? data.level : 0;
         this.currency = data.currency != null ? data.currency : 0;
+        this.ownedPads = data.ownedPads || [];
+        this.protection = data.protection || 0;
         this.levelData = buildLevel(LEVELS[this.currentLevel % LEVELS.length]);
         SEGMENTS = this.levelData.segments;
     }
@@ -177,7 +189,7 @@ class PlayScene extends Phaser.Scene {
             fontSize: '24px', fontFamily: 'Georgia, serif', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5).setScrollFactor(0);
-        this.add.text(CONFIG.WIDTH / 2, 80, `${this.levelData.angleDeg}°`, {
+        this.add.text(CONFIG.WIDTH / 2, 80, `${this.levelData.angleDeg}°  •  ${this.levelData.steps.length} stairs`, {
             fontSize: '15px', fontFamily: 'Arial', color: '#666688',
             stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5).setScrollFactor(0);
@@ -205,11 +217,21 @@ class PlayScene extends Phaser.Scene {
     handleAction() {
         if (this.playerState === 'idle') {
             this.launchPlayer();
+        } else if (this.playerState === 'rolling' || this.playerState === 'airborne') {
+            // Spacebar = jump during rolling (handled in updateRolling)
+            return;
         } else if ((this.playerState === 'stopped' || this.playerState === 'crashed') && this.showingScore) {
+            // Check fail conditions: crashed or >5ft from mark = must retry
+            const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5);
+            const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection };
             if (this.currentHealth <= 0) {
-                this.scene.restart({ health: CONFIG.BASE_HEALTH, level: 0, currency: 0 });
+                this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0 });
+            } else if (failed) {
+                // Retry same level
+                this.scene.start('PlayScene', { ...passData, level: this.currentLevel });
             } else {
-                this.scene.restart({ health: this.currentHealth, level: this.currentLevel + 1, currency: this.currency });
+                // Success — go to store before next level
+                this.scene.start('StoreScene', { ...passData, level: this.currentLevel + 1 });
             }
         }
     }
@@ -287,21 +309,7 @@ class PlayScene extends Phaser.Scene {
         }
         g.strokePath();
 
-        // Apple box near the stairs (wooden box — film set prop)
-        const abx = ld.endX + 60;
-        const aby = ld.endY;
-        g.fillStyle(0x8a7250, 1);
-        g.fillRect(abx, aby - 28, 40, 28);
-        g.fillStyle(0x7a6240, 1);
-        g.fillRect(abx, aby - 28, 40, 4);
-        g.lineStyle(1, 0x6a5230, 0.6);
-        g.strokeRect(abx, aby - 28, 40, 28);
-        // "APPLE BOX" text (too small to read, but it's there conceptually)
-        g.lineStyle(1, 0x5a4220, 0.3);
-        g.beginPath();
-        g.moveTo(abx + 8, aby - 14);
-        g.lineTo(abx + 32, aby - 14);
-        g.strokePath();
+        // (apple box removed — was confusing)
     }
 
     // ================================================================
@@ -1406,7 +1414,8 @@ class PlayScene extends Phaser.Scene {
         if (this.cursors.right.isDown) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
         else if (this.cursors.left.isDown) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
 
-        if (this.cursors.up.isDown && (time - this.lastJumpTime > CONFIG.JUMP_COOLDOWN_MS) && this.playerEnergy > this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC) {
+        const jumpPressed = this.cursors.up.isDown || this.spaceKey.isDown;
+        if (jumpPressed && (time - this.lastJumpTime > CONFIG.JUMP_COOLDOWN_MS) && this.playerEnergy > this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC) {
             this.lastJumpTime = time; this.jumpVelY = -CONFIG.JUMP_VELOCITY;
             this.playerEnergy -= this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC;
             this.playerState = 'airborne'; return;
@@ -1430,7 +1439,10 @@ class PlayScene extends Phaser.Scene {
         this.drawPlayer(pos.x, pos.y - CONFIG.PLAYER_RADIUS - 4, this.rollRotation);
 
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) { this.playerVelocity = 0; this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return; }
-        if (this.playerWorldX >= this.levelData.cameraX) { this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); }
+        if (this.playerWorldX >= this.levelData.cameraX) {
+            // On the ground rolling into the camera = crash
+            this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed();
+        }
     }
 
     updateAirborne(time, dt) {
@@ -1448,10 +1460,17 @@ class PlayScene extends Phaser.Scene {
             const s2 = SEGMENTS[this.currentSegment];
             this.distAlongSegment = (this.playerWorldX - s2.startX) / Math.cos(s2.angle);
         }
-        if (this.playerWorldX >= this.levelData.cameraX) { this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); return; }
+        // If airborne and past camera, only crash when landing — player can jump OVER the camera
+        if (this.playerWorldX >= this.levelData.cameraX && this.playerWorldY >= sy) {
+            this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); return;
+        }
+        // If past the entire level (way past camera), also crash
+        if (this.playerWorldX >= this.levelData.flatEndX) {
+            this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); return;
+        }
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) {
             this.playerWorldY = this.getSurfaceYAtX(this.playerWorldX); this.playerVelocity = 0;
-            this.playerState = 'stopped'; this.onPlayerStopped(); return;
+            this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return;
         }
         const hDist = hVel * dt;
         this.rollRotation += (hDist / (2*Math.PI*CONFIG.PLAYER_RADIUS)) * Math.PI * 2;
@@ -1482,7 +1501,8 @@ class PlayScene extends Phaser.Scene {
         // If on flat section (past endX), playerWorldY is already correct (flat ground Y)
 
         const dm = Math.abs(this.playerWorldX - ld.markX) / CONFIG.PIXELS_PER_FOOT;
-        const hc = CONFIG.LEVEL_BASE_COST + dm * CONFIG.ACCURACY_COST_MULT;
+        const rawHc = CONFIG.LEVEL_BASE_COST + dm * CONFIG.ACCURACY_COST_MULT;
+        const hc = Math.max(1, rawHc - this.protection * 0.3); // pads reduce damage
         this.currentHealth = Math.max(0, this.currentHealth - hc);
         this.scoreData = { distFeet: dm, isPerfect: Math.abs(this.playerWorldX - ld.markX) < CONFIG.PERFECT_THRESHOLD_PX, crashed: false, healthCost: hc };
         this.showScore();
@@ -1510,7 +1530,8 @@ class PlayScene extends Phaser.Scene {
         tier = Math.min(tier, 5); this.crashTier = tier; this.crashAnimTime = 0;
         const chc = CONFIG.CRASH_TIER_HEALTH_COSTS[tier-1];
         const sp = CONFIG.CRASH_TIER_SCORE_PENALTIES[tier-1];
-        const hc = CONFIG.LEVEL_BASE_COST + (dm+sp) * CONFIG.ACCURACY_COST_MULT + chc;
+        const rawHc = CONFIG.LEVEL_BASE_COST + (dm+sp) * CONFIG.ACCURACY_COST_MULT + chc;
+        const hc = Math.max(1, rawHc - this.protection * 0.5); // pads reduce crash damage
         this.currentHealth = Math.max(0, this.currentHealth - hc);
         this.scoreData = { distFeet: dm+sp, isPerfect: false, crashed: true, crashTier: tier, healthCost: hc };
         this.showScore();
@@ -1530,10 +1551,14 @@ class PlayScene extends Phaser.Scene {
             this.showingScore = true;
             const hs = `Health: ${Math.round(this.currentHealth)}/${CONFIG.BASE_HEALTH}  (-${Math.round(d.healthCost)})`;
             const cs = `+$${earned}  (Total: $${this.currency})`;
+            const failed = d.crashed || d.distFeet > 5;
             if (this.currentHealth <= 0) {
                 this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
+            } else if (failed) {
+                const reason = d.crashed ? 'Crashed into the camera!' : `Too far from mark (${d.distFeet.toFixed(1)}ft > 5ft)`;
+                this.promptText.setText(`${hs}\n${cs}\n\n${reason}\nPress SPACE to retry`).setVisible(true).setColor('#ffaa66');
             } else {
-                this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true);
+                this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true).setColor('#aaaacc');
             }
         });
     }
@@ -1546,9 +1571,123 @@ class PlayScene extends Phaser.Scene {
 }
 
 // ============================================================
+// STORE SCENE
+// ============================================================
+const PADS = [
+    { name: 'Foam Knee Pads', cost: 50, protection: 2, desc: 'Basic foam. Cheap but flimsy.' },
+    { name: 'Elbow Guards', cost: 75, protection: 3, desc: 'Protects those elbows.' },
+    { name: 'D3O Hip Pads', cost: 120, protection: 5, desc: 'Smart foam. Hardens on impact.' },
+    { name: 'Hard Shell Knee', cost: 150, protection: 6, desc: 'Serious protection.' },
+    { name: 'Spine Protector', cost: 200, protection: 8, desc: 'Keeps your back intact.' },
+    { name: 'Newspaper & Tape', cost: 20, protection: 1, desc: 'Desperate times...' },
+    { name: 'Full Body Suit', cost: 350, protection: 12, desc: 'The Michelin Man look.' },
+    { name: 'Wig w/ Hidden Pads', cost: 100, protection: 3, desc: 'Fashion meets function.' },
+];
+
+class StoreScene extends Phaser.Scene {
+    constructor() { super('StoreScene'); }
+
+    init(data) {
+        this.health = data.health;
+        this.level = data.level;
+        this.currency = data.currency;
+        this.ownedPads = data.ownedPads || [];
+        this.protection = data.protection || 0;
+    }
+
+    create() {
+        this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT/2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x1a1a2a);
+        this.add.text(CONFIG.WIDTH/2, 40, 'PAD STORE', {
+            fontSize: '36px', fontFamily: 'Georgia, serif', color: '#ccccee',
+            stroke: '#000000', strokeThickness: 4,
+        }).setOrigin(0.5);
+        this.add.text(CONFIG.WIDTH/2, 80, `Cash: $${this.currency}  |  Health: ${Math.round(this.health)}/${CONFIG.BASE_HEALTH}  |  Protection: ${this.protection}`, {
+            fontSize: '16px', fontFamily: 'Arial', color: '#8888aa',
+        }).setOrigin(0.5);
+
+        const startY = 120;
+        const itemH = 65;
+        PADS.forEach((pad, i) => {
+            const y = startY + i * itemH;
+            const owned = this.ownedPads.includes(i);
+            const canBuy = !owned && this.currency >= pad.cost;
+
+            // Background
+            const bg = this.add.rectangle(CONFIG.WIDTH/2, y + 25, CONFIG.WIDTH - 80, itemH - 8, owned ? 0x2a3a2a : 0x1e1e2e);
+            bg.setStrokeStyle(1, owned ? 0x44aa44 : 0x333355);
+
+            // Name and desc
+            this.add.text(60, y + 10, pad.name, {
+                fontSize: '18px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
+            });
+            this.add.text(60, y + 32, pad.desc, {
+                fontSize: '12px', fontFamily: 'Arial', color: '#666688',
+            });
+
+            // Protection
+            this.add.text(CONFIG.WIDTH - 280, y + 10, `+${pad.protection} protection`, {
+                fontSize: '14px', fontFamily: 'Arial', color: '#88aa88',
+            });
+
+            // Buy button or status
+            if (owned) {
+                this.add.text(CONFIG.WIDTH - 100, y + 18, 'OWNED', {
+                    fontSize: '16px', fontFamily: 'Arial', color: '#44aa44',
+                }).setOrigin(0.5);
+            } else {
+                const btnColor = canBuy ? 0x3a5a3a : 0x3a2a2a;
+                const btn = this.add.rectangle(CONFIG.WIDTH - 100, y + 22, 90, 30, btnColor);
+                btn.setStrokeStyle(1, canBuy ? 0x66cc66 : 0x664444);
+                const btnText = this.add.text(CONFIG.WIDTH - 100, y + 22, `$${pad.cost}`, {
+                    fontSize: '16px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444',
+                }).setOrigin(0.5);
+
+                if (canBuy) {
+                    btn.setInteractive({ useHandCursor: true });
+                    btn.on('pointerdown', () => {
+                        this.currency -= pad.cost;
+                        this.ownedPads.push(i);
+                        this.protection += pad.protection;
+                        this.scene.restart({
+                            health: this.health, level: this.level,
+                            currency: this.currency, ownedPads: this.ownedPads,
+                            protection: this.protection
+                        });
+                    });
+                }
+            }
+        });
+
+        // Continue button
+        const contBtn = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT - 40, 200, 40, 0x3a3a6a);
+        contBtn.setStrokeStyle(2, 0x6666cc);
+        contBtn.setInteractive({ useHandCursor: true });
+        this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 40, 'CONTINUE ▶', {
+            fontSize: '18px', fontFamily: 'Arial', color: '#aaaaff',
+        }).setOrigin(0.5);
+        contBtn.on('pointerdown', () => {
+            this.scene.start('PlayScene', {
+                health: this.health, level: this.level,
+                currency: this.currency, ownedPads: this.ownedPads,
+                protection: this.protection
+            });
+        });
+
+        // Also allow spacebar to continue
+        this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', () => {
+            this.scene.start('PlayScene', {
+                health: this.health, level: this.level,
+                currency: this.currency, ownedPads: this.ownedPads,
+                protection: this.protection
+            });
+        });
+    }
+}
+
+// ============================================================
 const game = new Phaser.Game({
     type: Phaser.AUTO, width: CONFIG.WIDTH, height: CONFIG.HEIGHT,
     backgroundColor: CONFIG.BG_COLOR, parent: document.body,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [BootScene, PlayScene],
+    scene: [BootScene, PlayScene, StoreScene],
 });
