@@ -157,7 +157,7 @@ class PlayScene extends Phaser.Scene {
         // Camera
         const worldW = this.levelData.flatEndX + 600;
         const worldH = this.levelData.endY + 600;
-        this.cameras.main.setBounds(-200, -200, worldW + 200, worldH + 200);
+        this.cameras.main.setBounds(-500, -600, worldW + 1000, worldH + 1200);
         this.cameras.main.scrollX = SEGMENTS[0].startX - 400;
         this.cameras.main.scrollY = SEGMENTS[0].startY - 300;
         this.camTargetX = this.cameras.main.scrollX;
@@ -981,40 +981,62 @@ class PlayScene extends Phaser.Scene {
             const rsx = shoulderX + H*0.06;
             const rsy = shoulderY + H*0.01;
             if (armProg > 0) {
-                // Upper arm rises up
-                const elbowX = rsx + H*0.025 * armProg;
+                // Upper arm rises up and forward
+                const elbowX = rsx + H*0.04 * armProg;
                 const elbowY = rsy - H*0.11 * armProg;
-                // Forearm straight up
-                const wristX = elbowX;
-                const wristY = elbowY - H*0.10 * armProg;
+                // Forearm angled slightly (not perfectly vertical — reads better)
+                const wristX = elbowX + H*0.02 * armProg;
+                const wristY = elbowY - H*0.11 * armProg;
 
                 // Upper arm (sleeve)
-                g.lineStyle(H*0.028, shirt, 1);
+                g.lineStyle(H*0.032, shirt, 1);
                 g.beginPath(); g.moveTo(rsx, rsy); g.lineTo(elbowX, elbowY); g.strokePath();
                 // Forearm
-                g.lineStyle(H*0.022, skin, 1);
+                g.lineStyle(H*0.025, skin, 1);
                 g.beginPath(); g.moveTo(elbowX, elbowY); g.lineTo(wristX, wristY); g.strokePath();
 
-                // Fist — round, at top of forearm
-                const fistR = H*0.02;
+                // CARTOON FIST — wide horizontal block, clearly distinct from the forearm
+                // From side view: we see the back of the hand. Fist is WIDER than the arm.
+                const fistW = H*0.06;   // much wider than forearm
+                const fistH = H*0.045;  // chunky
+                const fistCX = wristX;
+                const fistCY = wristY;
                 g.fillStyle(skin, 1);
-                g.fillCircle(wristX, wristY, fistR);
-                g.fillStyle(skinDark, 0.2);
-                g.fillCircle(wristX, wristY + fistR*0.3, fistR*0.4);
+                // Main fist — rounded rectangle shape
+                g.fillRect(fistCX - fistW/2, fistCY - fistH/2, fistW, fistH);
+                g.fillCircle(fistCX - fistW/2, fistCY, fistH/2);   // left round edge
+                g.fillCircle(fistCX + fistW/2, fistCY, fistH/2);   // right round edge
+                // Knuckle highlights
+                g.fillStyle(skinDark, 0.15);
+                g.fillCircle(fistCX - fistW*0.25, fistCY - fistH*0.15, fistH*0.2);
+                g.fillCircle(fistCX, fistCY - fistH*0.15, fistH*0.2);
+                g.fillCircle(fistCX + fistW*0.25, fistCY - fistH*0.15, fistH*0.2);
+                // Finger curl line across bottom of fist
+                g.lineStyle(1.5, skinDark, 0.25);
+                g.beginPath();
+                g.moveTo(fistCX - fistW*0.35, fistCY + fistH*0.15);
+                g.lineTo(fistCX + fistW*0.35, fistCY + fistH*0.15);
+                g.strokePath();
 
-                // THUMB POINTS UP from the top of the fist
-                if (armProg > 0.4) {
-                    const tp = (armProg - 0.4) / 0.6;
-                    const thumbH = H*0.035 * tp;
-                    const thumbW = H*0.015;
+                // THUMB — thick oval pointing UP from the LEFT edge of the fist
+                if (armProg > 0.3) {
+                    const tp = (armProg - 0.3) / 0.7;
+                    const thumbLen = H*0.05 * tp;
+                    const thumbW = H*0.025;   // nice and thick
+                    const thumbX = fistCX - fistW*0.42;
+                    const thumbTopY = fistCY - fistH/2 - thumbLen;
                     g.fillStyle(skin, 1);
-                    // Thumb goes UPWARD from top of fist
-                    g.fillRect(wristX - thumbW/2, wristY - fistR - thumbH, thumbW, thumbH + fistR*0.3);
-                    g.fillCircle(wristX, wristY - fistR - thumbH, thumbW/2 + 1);
+                    // Thumb shaft
+                    g.fillRect(thumbX - thumbW/2, thumbTopY, thumbW, thumbLen + fistH*0.3);
+                    // Rounded tip
+                    g.fillCircle(thumbX, thumbTopY, thumbW/2);
+                    // Slight shadow on thumb
+                    g.fillStyle(skinDark, 0.15);
+                    g.fillRect(thumbX + thumbW*0.15, thumbTopY + 2, thumbW*0.3, thumbLen);
                 }
             } else {
-                // Arm resting
-                g.lineStyle(H*0.022, skin, 1);
+                // Arm resting at side
+                g.lineStyle(H*0.024, skin, 1);
                 g.beginPath(); g.moveTo(rsx, rsy); g.lineTo(rsx + H*0.06, hipY); g.strokePath();
             }
 
@@ -1062,13 +1084,10 @@ class PlayScene extends Phaser.Scene {
 
     drawRolling(g, x, y, rotation) {
         const r = CONFIG.PLAYER_RADIUS;
-        let style = 'barrel';
-        if (this.cursors.right.isDown) style = 'pencil';
-        else if (this.cursors.left.isDown) style = 'spread';
-
-        const skin = 0xd4a87c;
-        const shirt = 0x3b5998; // consistent shirt color regardless of roll style
-        const pants = 0x33333f;
+        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const shirt = 0x3b5998, shirtDark = 0x2d4578;
+        const pants = 0x33333f, pantsDark = 0x282832;
+        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
@@ -1076,66 +1095,66 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x000000, 0.12);
         g.fillEllipse(x, y + r + 8, r * 0.9, 8);
 
-        // Barrel roll: person is on their SIDE, knees tucked to chest,
-        // rotating around their center mass. Head and feet stay roughly at the perimeter.
-        const head = rot(0, -r*0.6);
-        const neck = rot(0, -r*0.42);
-        const shoulderF = rot(r*0.15, -r*0.35);
-        const shoulderB = rot(-r*0.15, -r*0.35);
-        const hipF = rot(r*0.2, r*0.1);
-        const hipB = rot(-r*0.1, r*0.1);
-        const kneeF = rot(r*0.35, -r*0.2);
-        const kneeB = rot(-r*0.05, -r*0.15);
-        const footF = rot(r*0.15, -r*0.5);
-        const footB = rot(-r*0.2, -r*0.45);
-        const handF = rot(r*0.25, -r*0.55);
-        const handB = rot(-r*0.3, r*0.2);
+        // Barrel roll — tucked on side, knees to chest, arms wrapped.
+        // All body part sizes proportional to PERSON_HEIGHT for consistency with standing.
+        const head = rot(0, -r*0.65);
+        const neck = rot(0, -r*0.48);
+        const shoulderF = rot(r*0.18, -r*0.40);
+        const shoulderB = rot(-r*0.18, -r*0.40);
+        const hipF = rot(r*0.22, r*0.12);
+        const hipB = rot(-r*0.12, r*0.12);
+        const kneeF = rot(r*0.42, -r*0.18);
+        const kneeB = rot(-r*0.05, -r*0.12);
+        const footF = rot(r*0.18, -r*0.55);
+        const footB = rot(-r*0.22, -r*0.50);
+        const handF = rot(r*0.28, -r*0.58);
+        const handB = rot(-r*0.32, r*0.22);
 
-        // Back leg (drawn first, behind body)
-        g.lineStyle(r*0.12, pants, 0.7);
+        // Back leg
+        g.lineStyle(r*0.16, pantsDark, 0.7);
         g.beginPath(); g.moveTo(hipB.x, hipB.y); g.lineTo(kneeB.x, kneeB.y); g.strokePath();
-        g.lineStyle(r*0.10, pants, 0.7);
+        g.lineStyle(r*0.14, pantsDark, 0.7);
         g.beginPath(); g.moveTo(kneeB.x, kneeB.y); g.lineTo(footB.x, footB.y); g.strokePath();
-        g.fillStyle(0x1a1a1a, 0.7);
-        g.fillCircle(footB.x, footB.y, r*0.06);
+        g.fillStyle(shoe, 0.7);
+        g.fillCircle(footB.x, footB.y, r*0.08);
 
         // Back arm
-        g.lineStyle(r*0.08, skin, 0.6);
+        g.lineStyle(r*0.10, shirtDark, 0.6);
         g.beginPath(); g.moveTo(shoulderB.x, shoulderB.y); g.lineTo(handB.x, handB.y); g.strokePath();
 
-        // Torso (rectangular mass)
-        g.fillStyle(shirt, 1);
-        const tCx = (shoulderF.x + hipF.x) / 2;
-        const tCy = (shoulderF.y + hipF.y) / 2;
-        // Draw torso as a thick line
-        g.lineStyle(r*0.35, shirt, 1);
+        // Torso — jacket as thick line
+        g.lineStyle(r*0.42, shirt, 1);
+        g.beginPath(); g.moveTo(neck.x, neck.y); g.lineTo(hipF.x, hipF.y); g.strokePath();
+        // Torso shadow
+        g.lineStyle(r*0.14, shirtDark, 0.3);
         g.beginPath(); g.moveTo(neck.x, neck.y); g.lineTo(hipF.x, hipF.y); g.strokePath();
 
         // Front leg
-        g.lineStyle(r*0.14, pants, 1);
+        g.lineStyle(r*0.18, pants, 1);
         g.beginPath(); g.moveTo(hipF.x, hipF.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.11, pants, 1);
+        g.lineStyle(r*0.15, pants, 1);
         g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(footF.x, footF.y); g.strokePath();
-        // Shoe
-        g.fillStyle(0x1a1a1a, 1);
-        g.fillCircle(footF.x, footF.y, r*0.07);
+        g.fillStyle(shoe, 1);
+        g.fillCircle(footF.x, footF.y, r*0.09);
 
-        // Front arm (wrapped around knees)
-        g.lineStyle(r*0.09, shirt, 1);
+        // Front arm (sleeve + skin hand)
+        g.lineStyle(r*0.12, shirt, 1);
         g.beginPath(); g.moveTo(shoulderF.x, shoulderF.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.08, skin, 1);
+        g.lineStyle(r*0.10, skin, 1);
         g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(handF.x, handF.y); g.strokePath();
         g.fillStyle(skin, 1);
-        g.fillCircle(handF.x, handF.y, r*0.05);
+        g.fillCircle(handF.x, handF.y, r*0.06);
 
-        // Head
-        const headR = r * 0.18;
-        // Hair (back)
-        g.fillStyle(0x2a1a0a, 1);
+        // Head — sized to match standing proportions
+        const headR = r * 0.22;
+        g.fillStyle(hair, 1);
         g.fillCircle(head.x, head.y, headR);
-        // Face
         g.fillStyle(skin, 1);
         g.fillCircle(head.x + sin*headR*0.3, head.y + cos*headR*0.3, headR*0.85);
+        // Ear
+        const earDir = rot(headR*0.8, -r*0.65 + headR*0.1);
+        g.fillStyle(skinDark, 1);
+        g.fillCircle(earDir.x, earDir.y, headR*0.15);
     }
 
     // ================================================================
@@ -1195,7 +1214,11 @@ class PlayScene extends Phaser.Scene {
     }
     updateCamera() {
         const tx = this.playerWorldX - CONFIG.WIDTH/2 + CONFIG.CAM_LEAD_X;
-        const ty = this.playerWorldY - CONFIG.HEIGHT/2 + 100;
+        // Adjust camera Y offset per state so full character is always visible
+        let yOff = 100;
+        if (this.playerState === 'idle') yOff = -CONFIG.PERSON_HEIGHT * 0.35;
+        else if (this.playerState === 'stopped' || this.playerState === 'crashed') yOff = -CONFIG.PERSON_HEIGHT * 0.5;
+        const ty = this.playerWorldY - CONFIG.HEIGHT/2 + yOff;
         this.camTargetX += (tx - this.camTargetX) * CONFIG.CAM_SMOOTH;
         this.camTargetY += (ty - this.camTargetY) * CONFIG.CAM_SMOOTH;
         this.cameras.main.scrollX = this.camTargetX;
