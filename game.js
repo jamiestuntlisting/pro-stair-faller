@@ -271,6 +271,7 @@ class PlayScene extends Phaser.Scene {
         this.currentSegment = 0;
         this.distAlongSegment = 0;
         this.playerState = 'rolling';
+        this.lastJumpTime = this.time.now + 500; // prevent spacebar from triggering jump on launch
         this.hintText.setVisible(false);
     }
 
