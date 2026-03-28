@@ -499,14 +499,18 @@ class PlayScene extends Phaser.Scene {
         const crew1X = cx + H*0.55;  // camera operator
         const crew2X = cx + H*0.85;  // focus puller
         const crew3X = cx + H*1.15;  // director
+        // Diverse crew styles
+        const style1 = { skin: 0x8d5524, skinDark: 0x6d3d14, hair: 0x1a1a1a }; // dark skin, black hair — camera op
+        const style2 = { skin: 0xc68642, skinDark: 0xa66622, hair: 0x4a2a0a }; // medium brown skin — focus puller
+        const style3 = { skin: 0xf1c27d, skinDark: 0xd1a25d, hair: 0x888888 }; // light skin, grey hair — director
 
         if (tier <= 1) {
             // Tier 1: Wobble — camera shakes, crew annoyed
             const tilt = Math.sin(t*20) * 0.03 * Math.max(0, 1-t*2);
             this.drawCameraRig(g, cx, cy, tilt, 0);
-            this.drawCrewPerson(g, crew1X, cy, 0x4a4a5a, false, false, 0, 0, 0, 'lean_left');
-            this.drawCrewPerson(g, crew2X, cy, 0x5a4a3a, false, false, 0, 0, 0, 'standing');
-            this.drawCrewPerson(g, crew3X, cy, 0x2a2a3a, true, true, 0, 0, 0, 'confident');
+            this.drawCrewPerson(g, crew1X, cy, 0x4a4a5a, false, false, 0, 0, 0, 'lean_left', style1);
+            this.drawCrewPerson(g, crew2X, cy, 0x5a4a3a, false, false, 0, 0, 0, 'standing', style2);
+            this.drawCrewPerson(g, crew3X, cy, 0x2a2a3a, true, true, 0, 0, 0, 'confident', style3);
         } else if (tier === 2) {
             // Tier 2: Camera tilts, crew steps back and looks angry
             const prog = Math.min(t*2, 1);
@@ -514,9 +518,9 @@ class PlayScene extends Phaser.Scene {
             const step = prog * 60;  // step away distance
             this.drawCameraRig(g, cx, cy, tilt, 0);
             // Crew moved further right, angry poses
-            this.drawCrewPerson(g, crew1X + step, cy, 0x4a4a5a, false, false, 0, 1, 0, 'standing');
-            this.drawCrewPerson(g, crew2X + step*0.7, cy, 0x5a4a3a, false, false, 0, 1, 0, 'standing');
-            this.drawCrewPerson(g, crew3X + step*0.4, cy, 0x2a2a3a, true, true, 0, 0, 0, 'confident');
+            this.drawCrewPerson(g, crew1X + step, cy, 0x4a4a5a, false, false, 0, 1, 0, 'standing', style1);
+            this.drawCrewPerson(g, crew2X + step*0.7, cy, 0x5a4a3a, false, false, 0, 1, 0, 'standing', style2);
+            this.drawCrewPerson(g, crew3X + step*0.4, cy, 0x2a2a3a, true, true, 0, 0, 0, 'confident', style3);
         } else if (tier === 3) {
             // Tier 3: Camera topples, crew scrambles away
             const prog = Math.min(t*1.5, 1);
@@ -524,9 +528,9 @@ class PlayScene extends Phaser.Scene {
             const drop = prog * 30;
             const scatter = prog * 120;
             this.drawCameraRig(g, cx, cy, tilt, drop);
-            this.drawCrewPerson(g, crew1X + scatter, cy, 0x4a4a5a, false, false, 0, 2, 0, 'standing');
-            this.drawCrewPerson(g, crew2X + scatter*0.8, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing');
-            this.drawCrewPerson(g, crew3X + scatter*0.5, cy, 0x2a2a3a, true, true, 0, 1, 0, 'confident');
+            this.drawCrewPerson(g, crew1X + scatter, cy, 0x4a4a5a, false, false, 0, 2, 0, 'standing', style1);
+            this.drawCrewPerson(g, crew2X + scatter*0.8, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing', style2);
+            this.drawCrewPerson(g, crew3X + scatter*0.5, cy, 0x2a2a3a, true, true, 0, 1, 0, 'confident', style3);
         } else {
             // Tier 4-5: FULL CHAOS — everything destroyed
             const impactT = Math.min(t * 2.0, 1);
@@ -555,7 +559,7 @@ class PlayScene extends Phaser.Scene {
                     // Getting knocked — falling arc
                     const fallProg = impactT * 2;
                     const arcX = crew1X + fallProg * 80;
-                    this.drawCrewPerson(g, arcX, cy, 0x4a4a5a, false, false, 0, 2, 0, 'standing');
+                    this.drawCrewPerson(g, arcX, cy, 0x4a4a5a, false, false, 0, 2, 0, 'standing', style1);
                 } else {
                     // Knocked out — lying face down
                     g.lineStyle(H*0.035, 0x4a4a5a, 1);
@@ -590,7 +594,7 @@ class PlayScene extends Phaser.Scene {
             {
                 const S = 1.0; // full size — same as standing crew
                 if (impactT < 0.3) {
-                    this.drawCrewPerson(g, crew2X + impactT * 80, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing');
+                    this.drawCrewPerson(g, crew2X + impactT * 80, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing', style2);
                 } else {
                     // Crawling phase: t=0.3 to t=1.5, then collapse
                     const crawlTime = Math.max(0, t - 0.5);
@@ -840,9 +844,12 @@ class PlayScene extends Phaser.Scene {
         g.fillRect(bx + bw/2 - 8*S, by + 3*S, 6*S, 4*S);
     }
 
-    drawCrewPerson(g, baseX, baseY, bodyCol, hasBeret, hasMonitor, scatter, panic, fly, pose) {
+    drawCrewPerson(g, baseX, baseY, bodyCol, hasBeret, hasMonitor, scatter, panic, fly, pose, personStyle) {
         const H = CONFIG.PERSON_HEIGHT;
-        const skin = 0xd4a87c, skinDark = 0xc09670, hair = 0x3a2a1a;
+        const ps = personStyle || {};
+        const skin = ps.skin || 0xd4a87c;
+        const skinDark = ps.skinDark || Phaser.Display.Color.IntegerToColor(skin).darken(12).color;
+        const hair = ps.hair || 0x3a2a1a;
         const bodyDark = Phaser.Display.Color.IntegerToColor(bodyCol).darken(20).color;
         const sx = (baseX > this.levelData.cameraX ? scatter : -scatter * 0.6);
         const fx = fly * (baseX > this.levelData.cameraX ? 80 : -70);
@@ -1418,55 +1425,51 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x000000, 0.12);
         g.fillEllipse(x, y + r + 8, r * 0.9, 8);
 
-        // Barrel roll — tucked on side, knees to chest, arms wrapped.
-        // All body part sizes proportional to PERSON_HEIGHT for consistency with standing.
-        const head = rot(0, -r*0.65);
-        const neck = rot(0, -r*0.48);
-        const shoulderF = rot(r*0.18, -r*0.40);
-        const shoulderB = rot(-r*0.18, -r*0.40);
-        const hipF = rot(r*0.22, r*0.12);
-        const hipB = rot(-r*0.12, r*0.12);
-        const kneeF = rot(r*0.42, -r*0.18);
-        const kneeB = rot(-r*0.05, -r*0.12);
-        const footF = rot(r*0.18, -r*0.55);
-        const footB = rot(-r*0.22, -r*0.50);
-        const handF = rot(r*0.28, -r*0.58);
-        const handB = rot(-r*0.32, r*0.22);
+        // Tight barrel roll tuck — person curled into compact ball on their side.
+        // All points stay close to center for a clean, realistic tuck.
+        const head = rot(0, -r*0.50);          // head at top
+        const shoulder = rot(0, -r*0.30);      // shoulders centered
+        const hip = rot(0, r*0.15);            // hips below center
+        const kneeF = rot(r*0.25, -r*0.15);   // knees pulled up to chest
+        const kneeB = rot(-r*0.10, -r*0.05);
+        const footF = rot(r*0.10, -r*0.40);   // feet near head (tight tuck)
+        const footB = rot(-r*0.15, -r*0.35);
+        const handF = rot(r*0.20, -r*0.30);   // hands grabbing knees
+        const handB = rot(-r*0.15, r*0.05);
 
-        // Back leg
-        g.lineStyle(r*0.16, pantsDark, 0.7);
-        g.beginPath(); g.moveTo(hipB.x, hipB.y); g.lineTo(kneeB.x, kneeB.y); g.strokePath();
-        g.lineStyle(r*0.14, pantsDark, 0.7);
+        // Back leg (slightly visible behind)
+        g.lineStyle(r*0.12, pantsDark, 0.5);
+        g.beginPath(); g.moveTo(hip.x, hip.y); g.lineTo(kneeB.x, kneeB.y); g.strokePath();
+        g.lineStyle(r*0.10, pantsDark, 0.5);
         g.beginPath(); g.moveTo(kneeB.x, kneeB.y); g.lineTo(footB.x, footB.y); g.strokePath();
-        g.fillStyle(shoe, 0.7);
-        g.fillCircle(footB.x, footB.y, r*0.08);
 
-        // Back arm
-        g.lineStyle(r*0.10, shirtDark, 0.6);
-        g.beginPath(); g.moveTo(shoulderB.x, shoulderB.y); g.lineTo(handB.x, handB.y); g.strokePath();
+        // Back arm (tucked behind)
+        g.lineStyle(r*0.08, shirtDark, 0.4);
+        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(handB.x, handB.y); g.strokePath();
 
-        // Torso — jacket as thick line
-        g.lineStyle(r*0.42, shirt, 1);
-        g.beginPath(); g.moveTo(neck.x, neck.y); g.lineTo(hipF.x, hipF.y); g.strokePath();
-        // Torso shadow
-        g.lineStyle(r*0.14, shirtDark, 0.3);
-        g.beginPath(); g.moveTo(neck.x, neck.y); g.lineTo(hipF.x, hipF.y); g.strokePath();
+        // Torso — solid jacket block connecting shoulder to hip
+        g.lineStyle(r*0.38, shirt, 1);
+        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(hip.x, hip.y); g.strokePath();
+        g.lineStyle(r*0.12, shirtDark, 0.25);
+        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(hip.x, hip.y); g.strokePath();
 
-        // Front leg
-        g.lineStyle(r*0.18, pants, 1);
-        g.beginPath(); g.moveTo(hipF.x, hipF.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.15, pants, 1);
+        // Front leg — thigh to knee, shin to foot (tucked tight)
+        g.lineStyle(r*0.14, pants, 1);
+        g.beginPath(); g.moveTo(hip.x, hip.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
+        g.lineStyle(r*0.12, pants, 1);
         g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(footF.x, footF.y); g.strokePath();
         g.fillStyle(shoe, 1);
-        g.fillCircle(footF.x, footF.y, r*0.09);
+        g.fillCircle(footF.x, footF.y, r*0.06);
+        g.fillStyle(shoe, 0.5);
+        g.fillCircle(footB.x, footB.y, r*0.05);
 
-        // Front arm (sleeve + skin hand)
-        g.lineStyle(r*0.12, shirt, 1);
-        g.beginPath(); g.moveTo(shoulderF.x, shoulderF.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.10, skin, 1);
+        // Front arm — grabbing knee
+        g.lineStyle(r*0.10, shirt, 1);
+        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
+        g.lineStyle(r*0.08, skin, 1);
         g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(handF.x, handF.y); g.strokePath();
         g.fillStyle(skin, 1);
-        g.fillCircle(handF.x, handF.y, r*0.06);
+        g.fillCircle(handF.x, handF.y, r*0.05);
 
         // Head — sized to match standing proportions
         const headR = r * 0.22;
