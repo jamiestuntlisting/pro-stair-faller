@@ -1420,71 +1420,90 @@ class PlayScene extends Phaser.Scene {
         const r = CONFIG.PLAYER_RADIUS;
         const skin = 0xd4a87c, skinDark = 0xc09670;
         const shirt = 0x3b5998, shirtDark = 0x2d4578;
-        const pants = 0x33333f, pantsDark = 0x282832;
-        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const pants = 0x33333f, hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
-        // Shadow
-        g.fillStyle(0x000000, 0.12);
-        g.fillEllipse(x, y + r + 8, r * 0.9, 8);
+        // Shadow below the ball
+        g.fillStyle(0x000000, 0.15);
+        g.fillEllipse(x, y + r + 4, r * 0.7, 5);
 
-        // Tight barrel roll tuck — person curled into compact ball on their side.
-        // All points stay close to center for a clean, realistic tuck.
-        const head = rot(0, -r*0.50);          // head at top
-        const shoulder = rot(0, -r*0.30);      // shoulders centered
-        const hip = rot(0, r*0.15);            // hips below center
-        const kneeF = rot(r*0.25, -r*0.15);   // knees pulled up to chest
-        const kneeB = rot(-r*0.10, -r*0.05);
-        const footF = rot(r*0.10, -r*0.40);   // feet near head (tight tuck)
-        const footB = rot(-r*0.15, -r*0.35);
-        const handF = rot(r*0.20, -r*0.30);   // hands grabbing knees
-        const handB = rot(-r*0.15, r*0.05);
+        // === COMPACT BARREL ROLL ===
+        // Person curled on their side — spine follows a C-curve, knees to chest
+        // Everything stays INSIDE the radius circle
 
-        // Back leg (slightly visible behind)
-        g.lineStyle(r*0.12, pantsDark, 0.5);
-        g.beginPath(); g.moveTo(hip.x, hip.y); g.lineTo(kneeB.x, kneeB.y); g.strokePath();
-        g.lineStyle(r*0.10, pantsDark, 0.5);
-        g.beginPath(); g.moveTo(kneeB.x, kneeB.y); g.lineTo(footB.x, footB.y); g.strokePath();
+        // Spine curve points — tight C shape
+        const spine0 = rot(0, -r*0.40);  // upper back (near top)
+        const spine1 = rot(r*0.18, 0);   // mid-back curves forward
+        const spine2 = rot(0, r*0.30);   // lower back/butt (near bottom)
 
-        // Back arm (tucked behind)
-        g.lineStyle(r*0.08, shirtDark, 0.4);
-        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(handB.x, handB.y); g.strokePath();
+        // Head tucked at top of C
+        const headPos = rot(-r*0.08, -r*0.48);
+        const headR = r * 0.28;
 
-        // Torso — solid jacket block connecting shoulder to hip
-        g.lineStyle(r*0.38, shirt, 1);
-        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(hip.x, hip.y); g.strokePath();
-        g.lineStyle(r*0.12, shirtDark, 0.25);
-        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(hip.x, hip.y); g.strokePath();
+        // Knees pulled up tight to chest
+        const kneePos = rot(r*0.20, -r*0.22);
+        const footPos = rot(-r*0.05, -r*0.38);
 
-        // Front leg — thigh to knee, shin to foot (tucked tight)
-        g.lineStyle(r*0.14, pants, 1);
-        g.beginPath(); g.moveTo(hip.x, hip.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.12, pants, 1);
-        g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(footF.x, footF.y); g.strokePath();
+        // Hands clasped around shins
+        const handPos = rot(r*0.12, -r*0.32);
+
+        // --- DRAW BACK TO FRONT ---
+
+        // Torso — thick arc from upper back through mid to lower back
+        // Draw as connected thick line segments forming the C
+        g.lineStyle(r*0.50, shirt, 1);
+        g.beginPath();
+        g.moveTo(spine0.x, spine0.y);
+        g.lineTo(spine1.x, spine1.y);
+        g.strokePath();
+        g.beginPath();
+        g.moveTo(spine1.x, spine1.y);
+        g.lineTo(spine2.x, spine2.y);
+        g.strokePath();
+        // Shirt shadow on the outside curve
+        g.lineStyle(r*0.15, shirtDark, 0.2);
+        g.beginPath();
+        g.moveTo(spine0.x, spine0.y);
+        g.lineTo(spine1.x, spine1.y);
+        g.lineTo(spine2.x, spine2.y);
+        g.strokePath();
+
+        // Pants — from hip down
+        g.lineStyle(r*0.40, pants, 1);
+        g.beginPath();
+        g.moveTo(spine2.x, spine2.y);
+        g.lineTo(kneePos.x, kneePos.y);
+        g.strokePath();
+
+        // Shin (pants) — knee to foot
+        g.lineStyle(r*0.28, pants, 1);
+        g.beginPath();
+        g.moveTo(kneePos.x, kneePos.y);
+        g.lineTo(footPos.x, footPos.y);
+        g.strokePath();
+
+        // Shoe
         g.fillStyle(shoe, 1);
-        g.fillCircle(footF.x, footF.y, r*0.06);
-        g.fillStyle(shoe, 0.5);
-        g.fillCircle(footB.x, footB.y, r*0.05);
+        g.fillCircle(footPos.x, footPos.y, r*0.10);
 
-        // Front arm — grabbing knee
-        g.lineStyle(r*0.10, shirt, 1);
-        g.beginPath(); g.moveTo(shoulder.x, shoulder.y); g.lineTo(kneeF.x, kneeF.y); g.strokePath();
-        g.lineStyle(r*0.08, skin, 1);
-        g.beginPath(); g.moveTo(kneeF.x, kneeF.y); g.lineTo(handF.x, handF.y); g.strokePath();
+        // Arm — from shoulder area down to hands at shin
+        g.lineStyle(r*0.16, shirt, 1);
+        g.beginPath();
+        g.moveTo(spine0.x, spine0.y);
+        g.lineTo(handPos.x, handPos.y);
+        g.strokePath();
+        // Forearm/hand (skin)
         g.fillStyle(skin, 1);
-        g.fillCircle(handF.x, handF.y, r*0.05);
+        g.fillCircle(handPos.x, handPos.y, r*0.10);
 
-        // Head — sized to match standing proportions
-        const headR = r * 0.22;
+        // Head — tucked chin to chest
         g.fillStyle(hair, 1);
-        g.fillCircle(head.x, head.y, headR);
+        g.fillCircle(headPos.x, headPos.y, headR);
+        // Face (turned inward/down)
+        const faceOff = rot(-r*0.02, -r*0.38);
         g.fillStyle(skin, 1);
-        g.fillCircle(head.x + sin*headR*0.3, head.y + cos*headR*0.3, headR*0.85);
-        // Ear
-        const earDir = rot(headR*0.8, -r*0.65 + headR*0.1);
-        g.fillStyle(skinDark, 1);
-        g.fillCircle(earDir.x, earDir.y, headR*0.15);
+        g.fillCircle(faceOff.x, faceOff.y, headR*0.78);
     }
 
     // ================================================================
@@ -1617,8 +1636,10 @@ class PlayScene extends Phaser.Scene {
         const onFlat = seg.angle === 0;
         const rollSpeed = onFlat ? 0.6 : 1; // on flat ground, still rolling but slower
         this.rollRotation += (dist / circ) * Math.PI * 2 * rollSpeed;
-        // Draw ball sitting ON the surface — bottom of ball touches slope
-        const drawYOff = CONFIG.PLAYER_RADIUS;
+        // Draw ball sitting ON the surface — center offset by radius + small buffer
+        // Extra offset on stairs prevents clipping through step geometry
+        const extraOff = onFlat ? 0 : 8;
+        const drawYOff = CONFIG.PLAYER_RADIUS + extraOff;
         this.drawPlayer(pos.x, pos.y - drawYOff, this.rollRotation);
 
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) { this.playerVelocity = 0; this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return; }
