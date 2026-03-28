@@ -1,6 +1,10 @@
 // ============================================================
 // STARFALL — Phase 1+ Core Loop (Visual Overhaul)
 // ============================================================
+window.onerror = function(msg, url, line, col, err) {
+    document.title = 'ERR:' + line + ':' + msg;
+    console.error('STARFALL ERROR line ' + line + ': ' + msg);
+};
 
 const CONFIG = {
     WIDTH: 1280,
@@ -17,7 +21,7 @@ const CONFIG = {
     MIN_POWER_FLOOR: 0.35,    // meter value can't go below this — prevents silly low power
     MAX_INITIAL_VELOCITY: 2200,
     MAX_ENERGY: 340,
-    BASE_FRICTION: 420,
+    BASE_FRICTION: 550,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
     MAX_ENERGY_DRAIN_RATE: 0.38,
@@ -43,7 +47,7 @@ const CONFIG = {
 
     THUMBS_UP_DURATION: 4500,
     STOP_BEAT_DURATION: 2800,  // lie still before thumbs up (ms) — long beat
-    PLAYER_RADIUS: 120,       // tucked ball radius — large enough to see clearly
+    PLAYER_RADIUS: 48,        // tucked ball radius — proportional to person (shoulder width)
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
     CAM_SMOOTH: 0.06,
@@ -110,7 +114,7 @@ let SEGMENTS = buildLevel(LEVELS[0]).segments;
 // ============================================================
 class BootScene extends Phaser.Scene {
     constructor() { super('BootScene'); }
-    create() { this.scene.start('PlayScene'); }
+    update() { this.scene.start('PlayScene'); }
 }
 
 // ============================================================
@@ -848,9 +852,9 @@ class PlayScene extends Phaser.Scene {
         const H = CONFIG.PERSON_HEIGHT;
         const ps = personStyle || {};
         const skin = ps.skin || 0xd4a87c;
-        const skinDark = ps.skinDark || Phaser.Display.Color.IntegerToColor(skin).darken(12).color;
+        const skinDark = ps.skinDark || (((skin >> 16 & 0xff) * 0.8 | 0) << 16 | ((skin >> 8 & 0xff) * 0.8 | 0) << 8 | ((skin & 0xff) * 0.8 | 0));
         const hair = ps.hair || 0x3a2a1a;
-        const bodyDark = Phaser.Display.Color.IntegerToColor(bodyCol).darken(20).color;
+        const bodyDark = ((bodyCol >> 16 & 0xff) * 0.75 | 0) << 16 | ((bodyCol >> 8 & 0xff) * 0.75 | 0) << 8 | ((bodyCol & 0xff) * 0.75 | 0);
         const sx = (baseX > this.levelData.cameraX ? scatter : -scatter * 0.6);
         const fx = fly * (baseX > this.levelData.cameraX ? 80 : -70);
         const fy = fly * -70;
@@ -1613,9 +1617,8 @@ class PlayScene extends Phaser.Scene {
         const onFlat = seg.angle === 0;
         const rollSpeed = onFlat ? 0.6 : 1; // on flat ground, still rolling but slower
         this.rollRotation += (dist / circ) * Math.PI * 2 * rollSpeed;
-        // On flat ground, draw closer to surface (rolling on the ground, not bouncing above it)
-        // Draw the rolling player so they appear ON the surface, not floating above it
-        const drawYOff = onFlat ? CONFIG.PLAYER_RADIUS * 0.3 : CONFIG.PLAYER_RADIUS * 0.5;
+        // Draw ball sitting ON the surface — bottom of ball touches slope
+        const drawYOff = CONFIG.PLAYER_RADIUS;
         this.drawPlayer(pos.x, pos.y - drawYOff, this.rollRotation);
 
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) { this.playerVelocity = 0; this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return; }
@@ -1654,7 +1657,7 @@ class PlayScene extends Phaser.Scene {
         }
         const hDist = hVel * dt;
         this.rollRotation += (hDist / (2*Math.PI*CONFIG.PLAYER_RADIUS)) * Math.PI * 2;
-        this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS * 0.5, this.rollRotation);
+        this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS, this.rollRotation);
     }
 
     onPlayerStopped() {
@@ -1887,5 +1890,5 @@ const game = new Phaser.Game({
     type: Phaser.AUTO, width: CONFIG.WIDTH, height: CONFIG.HEIGHT,
     backgroundColor: CONFIG.BG_COLOR, parent: document.body,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    scene: [BootScene, PlayScene, StoreScene],
+    scene: [PlayScene, StoreScene],
 });
