@@ -43,7 +43,7 @@ const CONFIG = {
 
     THUMBS_UP_DURATION: 4500,
     STOP_BEAT_DURATION: 2800,  // lie still before thumbs up (ms) — long beat
-    PLAYER_RADIUS: 50,        // tucked ball radius — tighter tuck, closer to stairs
+    PLAYER_RADIUS: 120,       // tucked ball radius — large enough to see clearly
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
     CAM_SMOOTH: 0.06,
@@ -125,6 +125,7 @@ class PlayScene extends Phaser.Scene {
         this.currency = data.currency != null ? data.currency : 0;
         this.ownedPads = data.ownedPads || [];
         this.protection = data.protection || 0;
+        this.takeNumber = data.takeNumber || 1;
         this.levelData = buildLevel(LEVELS[this.currentLevel % LEVELS.length]);
         SEGMENTS = this.levelData.segments;
     }
@@ -178,7 +179,7 @@ class PlayScene extends Phaser.Scene {
         // UI (fixed to screen)
         this.uiGfx = this.add.graphics().setScrollFactor(0);
         this.meterGfx = this.add.graphics().setScrollFactor(0);
-        this.meterLabel = this.add.text(44, 184, 'POWER', {
+        this.meterLabel = this.add.text(44, 78, 'POWER', {
             fontSize: '12px', fontFamily: 'Arial, sans-serif', color: '#8888aa',
         }).setOrigin(0.5, 1).setScrollFactor(0);
         this.add.text(140, 18, 'ENERGY', { fontSize: '11px', fontFamily: 'Arial', color: '#66bb99' }).setOrigin(0, 1).setScrollFactor(0);
@@ -189,6 +190,28 @@ class PlayScene extends Phaser.Scene {
             fontSize: '24px', fontFamily: 'Georgia, serif', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5).setScrollFactor(0);
+        // Slate — "Take X"
+        const slateX = CONFIG.WIDTH - 100, slateY = 50;
+        const slateGfx = this.add.graphics().setScrollFactor(0);
+        slateGfx.fillStyle(0x222222, 0.9);
+        slateGfx.fillRect(slateX - 55, slateY - 22, 110, 44);
+        slateGfx.lineStyle(2, 0xffffff, 0.6);
+        slateGfx.strokeRect(slateX - 55, slateY - 22, 110, 44);
+        // Diagonal stripes on top (clapperboard style)
+        slateGfx.fillStyle(0xffffff, 0.7);
+        for (let i = 0; i < 5; i++) {
+            slateGfx.fillRect(slateX - 55 + i*22, slateY - 30, 11, 8);
+        }
+        slateGfx.fillStyle(0x222222, 0.9);
+        slateGfx.fillRect(slateX - 55, slateY - 30, 110, 8);
+        slateGfx.fillStyle(0xffffff, 0.7);
+        for (let i = 0; i < 5; i++) {
+            slateGfx.fillRect(slateX - 50 + i*22, slateY - 30, 11, 8);
+        }
+        this.add.text(slateX, slateY, `TAKE ${this.takeNumber}`, {
+            fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5).setScrollFactor(0);
+
         this.add.text(CONFIG.WIDTH / 2, 80, `${this.levelData.angleDeg}°  •  ${this.levelData.steps.length} stairs`, {
             fontSize: '15px', fontFamily: 'Arial', color: '#666688',
             stroke: '#000000', strokeThickness: 3,
@@ -227,8 +250,8 @@ class PlayScene extends Phaser.Scene {
             if (this.currentHealth <= 0) {
                 this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0 });
             } else if (failed) {
-                // Retry same level
-                this.scene.start('PlayScene', { ...passData, level: this.currentLevel });
+                // Retry same level — increment take number
+                this.scene.start('PlayScene', { ...passData, level: this.currentLevel, takeNumber: this.takeNumber + 1 });
             } else {
                 // Success — go to store before next level
                 this.scene.start('StoreScene', { ...passData, level: this.currentLevel + 1 });
@@ -1320,7 +1343,7 @@ class PlayScene extends Phaser.Scene {
                 // THUMB — pointing UP from the top-left of the fist
                 if (armProg > 0.3) {
                     const tp = (armProg - 0.3) / 0.7;
-                    const thumbLen = H*0.05 * tp;
+                    const thumbLen = H*0.025 * tp;
                     const thumbW = H*0.022;
                     const thumbX = fistCX - fistR*0.6;
                     const thumbTopY = fistCY - fistR - thumbLen;
@@ -1464,7 +1487,7 @@ class PlayScene extends Phaser.Scene {
         if (this.playerState !== 'idle') { this.meterLabel.setVisible(false); return; }
         this.meterLabel.setVisible(true);
         // Meter extends from top to near bottom of screen
-        const mx = 30, my = 100, mw = 28, mh = CONFIG.HEIGHT - 160;
+        const mx = 30, my = 85, mw = 28, mh = CONFIG.HEIGHT - 95;
         g.fillStyle(0x1a1a28, 0.9); g.fillRect(mx, my, mw, mh);
         g.lineStyle(1, 0x444466, 0.8); g.strokeRect(mx, my, mw, mh);
 
@@ -1612,7 +1635,8 @@ class PlayScene extends Phaser.Scene {
         const rollSpeed = onFlat ? 0.6 : 1; // on flat ground, still rolling but slower
         this.rollRotation += (dist / circ) * Math.PI * 2 * rollSpeed;
         // On flat ground, draw closer to surface (rolling on the ground, not bouncing above it)
-        const drawYOff = onFlat ? CONFIG.PLAYER_RADIUS * 0.4 : CONFIG.PLAYER_RADIUS + 4;
+        // Draw the rolling player so they appear ON the surface, not floating above it
+        const drawYOff = onFlat ? CONFIG.PLAYER_RADIUS * 0.3 : CONFIG.PLAYER_RADIUS * 0.5;
         this.drawPlayer(pos.x, pos.y - drawYOff, this.rollRotation);
 
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) { this.playerVelocity = 0; this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return; }
@@ -1651,7 +1675,7 @@ class PlayScene extends Phaser.Scene {
         }
         const hDist = hVel * dt;
         this.rollRotation += (hDist / (2*Math.PI*CONFIG.PLAYER_RADIUS)) * Math.PI * 2;
-        this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS - 4, this.rollRotation);
+        this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS * 0.5, this.rollRotation);
     }
 
     onPlayerStopped() {
@@ -1751,14 +1775,18 @@ class PlayScene extends Phaser.Scene {
 // STORE SCENE
 // ============================================================
 const PADS = [
-    { name: 'Foam Knee Pads', cost: 50, protection: 2, desc: 'Basic foam. Cheap but flimsy.' },
-    { name: 'Elbow Guards', cost: 75, protection: 3, desc: 'Protects those elbows.' },
-    { name: 'D3O Hip Pads', cost: 120, protection: 5, desc: 'Smart foam. Hardens on impact.' },
-    { name: 'Hard Shell Knee', cost: 150, protection: 6, desc: 'Serious protection.' },
-    { name: 'Spine Protector', cost: 200, protection: 8, desc: 'Keeps your back intact.' },
-    { name: 'Newspaper & Tape', cost: 2, protection: 1, desc: 'Desperate times... ($1.50 from the corner store)' },
-    { name: 'Full Body Suit', cost: 350, protection: 12, desc: 'The Michelin Man look.' },
-    { name: 'Wig w/ Hidden Pads', cost: 100, protection: 3, desc: 'Fashion meets function.' },
+    // Knees & Elbows
+    { name: 'Foam Knee Pads', cost: 50, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
+    { name: 'Hard Shell Knee', cost: 150, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
+    { name: 'Elbow Guards', cost: 75, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
+    // Back & Core
+    { name: 'D3O Hip Pads', cost: 120, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
+    { name: 'Spine Protector', cost: 200, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    // Head
+    { name: 'Wig w/ Hidden Pads', cost: 100, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
+    // Specialty
+    { name: 'Newspaper & Tape', cost: 2, protection: 1, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
+    { name: 'Full Body Suit', cost: 350, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
 ];
 
 class StoreScene extends Phaser.Scene {
@@ -1782,10 +1810,19 @@ class StoreScene extends Phaser.Scene {
             fontSize: '16px', fontFamily: 'Arial', color: '#8888aa',
         }).setOrigin(0.5);
 
-        const startY = 120;
-        const itemH = 65;
+        let curY = 115;
+        const itemH = 58;
+        let lastCategory = '';
         PADS.forEach((pad, i) => {
-            const y = startY + i * itemH;
+            // Category header
+            if (pad.category !== lastCategory) {
+                lastCategory = pad.category;
+                this.add.text(60, curY, pad.category.toUpperCase(), {
+                    fontSize: '11px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 2,
+                });
+                curY += 18;
+            }
+            const y = curY;
             const owned = this.ownedPads.includes(i);
             const canBuy = !owned && this.currency >= pad.cost;
 
@@ -1837,6 +1874,7 @@ class StoreScene extends Phaser.Scene {
                     });
                 }
             }
+            curY += itemH;
         });
 
         // Continue button
