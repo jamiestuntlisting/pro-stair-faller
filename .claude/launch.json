@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "starfall",
+      "runtimeExecutable": "ruby",
+      "runtimeArgs": ["-e", "require 'webrick'; WEBrick::HTTPServer.new(Port: 8000, DocumentRoot: '/tmp/starfall').start"],
+      "port": 8000
+    }
+  ]
+}
