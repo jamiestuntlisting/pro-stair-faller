@@ -17,7 +17,7 @@ const CONFIG = {
     MIN_POWER_FLOOR: 0.35,    // meter value can't go below this — prevents silly low power
     MAX_INITIAL_VELOCITY: 2200,
     MAX_ENERGY: 340,
-    BASE_FRICTION: 340,
+    BASE_FRICTION: 420,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
     MAX_ENERGY_DRAIN_RATE: 0.38,
@@ -43,7 +43,7 @@ const CONFIG = {
 
     THUMBS_UP_DURATION: 4500,
     STOP_BEAT_DURATION: 2800,  // lie still before thumbs up (ms) — long beat
-    PLAYER_RADIUS: 75,        // tucked ball radius
+    PLAYER_RADIUS: 50,        // tucked ball radius — tighter tuck, closer to stairs
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
     CAM_SMOOTH: 0.06,
@@ -238,8 +238,12 @@ class PlayScene extends Phaser.Scene {
 
     launchPlayer() {
         const scaled = Math.pow(this.meterValue, CONFIG.METER_POWER_CURVE);
-        this.playerVelocity = scaled * CONFIG.MAX_INITIAL_VELOCITY;
-        this.playerMaxEnergy = scaled * CONFIG.MAX_ENERGY;
+        // Scale max velocity/energy to level size — short levels need less power range
+        const totalDist = this.levelData.markX - this.levelData.startX;
+        const maxPossibleDist = CONFIG.MAX_INITIAL_VELOCITY * 2.5;
+        const levelScale = Math.min(1.0, Math.max(0.3, (totalDist / maxPossibleDist) * 1.8));
+        this.playerVelocity = scaled * CONFIG.MAX_INITIAL_VELOCITY * levelScale;
+        this.playerMaxEnergy = scaled * CONFIG.MAX_ENERGY * levelScale;
         this.playerEnergy = this.playerMaxEnergy;
         this.currentSegment = 0;
         this.distAlongSegment = 0;
@@ -558,50 +562,78 @@ class PlayScene extends Phaser.Scene {
                 }
             }
 
-            // === FOCUS PULLER — crawling away on all fours, far right ===
+            // === FOCUS PULLER — crawling away, then collapses (full person scale) ===
             {
-                if (impactT < 0.35) {
-                    // Falling down
-                    const fallP = impactT / 0.35;
-                    const fX = crew2X + fallP * 50;
-                    const fY = cy;
-                    // Crouching down
-                    this.drawCrewPerson(g, fX, fY, 0x5a4a3a, false, false, 0, 2, 0, 'standing');
+                const S = 1.0; // full size — same as standing crew
+                if (impactT < 0.3) {
+                    this.drawCrewPerson(g, crew2X + impactT * 80, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing');
                 } else {
-                    const crawlDist = afterT * H * 0.6;
-                    const crawlX = crew2X + 80 + crawlDist;
-                    const bob = Math.sin(t * 8) * 3;
-                    const limb = Math.sin(t * 6);
-                    const torsoY = cy - H*0.11 + bob;
-                    g.lineStyle(H*0.055, 0x5a4a3a, 1);
-                    g.beginPath(); g.moveTo(crawlX - H*0.09, torsoY); g.lineTo(crawlX + H*0.09, torsoY); g.strokePath();
-                    g.lineStyle(H*0.028, 0x5a4a3a, 1);
-                    g.beginPath();
-                    g.moveTo(crawlX - H*0.09, torsoY); g.lineTo(crawlX - H*0.14 + limb*H*0.03, cy);
-                    g.moveTo(crawlX - H*0.05, torsoY); g.lineTo(crawlX - H*0.09 - limb*H*0.03, cy);
-                    g.strokePath();
-                    g.lineStyle(H*0.020, 0xd4a87c, 1);
-                    g.beginPath();
-                    g.moveTo(crawlX + H*0.07, torsoY); g.lineTo(crawlX + H*0.14 - limb*H*0.025, cy);
-                    g.moveTo(crawlX + H*0.05, torsoY); g.lineTo(crawlX + H*0.11 + limb*H*0.025, cy);
-                    g.strokePath();
-                    g.fillStyle(0xd4a87c, 1);
-                    g.fillCircle(crawlX + H*0.14 - limb*H*0.025, cy, H*0.011);
-                    g.fillCircle(crawlX + H*0.11 + limb*H*0.025, cy, H*0.011);
-                    // Head looking back (terrified)
-                    const hx = crawlX + H*0.13, hy = torsoY - H*0.015;
-                    g.fillStyle(0x3a2a1a, 1);
-                    g.fillCircle(hx, hy, H*0.037);
-                    g.fillStyle(0xd4a87c, 1);
-                    g.fillCircle(hx + H*0.008, hy + H*0.005, H*0.030);
-                    g.fillStyle(0xffffff, 1);
-                    g.fillCircle(hx + H*0.015, hy, H*0.009);
-                    g.fillStyle(0x222222, 1);
-                    g.fillCircle(hx + H*0.017, hy, H*0.004);
-                    // Knees
-                    g.fillStyle(0x5a4a3a, 0.5);
-                    g.fillCircle(crawlX - H*0.14 + limb*H*0.03, cy, H*0.014);
-                    g.fillCircle(crawlX - H*0.09 - limb*H*0.03, cy, H*0.014);
+                    // Crawling phase: t=0.3 to t=1.5, then collapse
+                    const crawlTime = Math.max(0, t - 0.5);
+                    const collapsed = crawlTime > 2.0;
+                    const crawlDist = Math.min(crawlTime, 2.0) * H * 0.25;
+                    const crawlX = crew2X + 100 + crawlDist;
+                    const bob = collapsed ? 0 : Math.sin(t * 7) * 5;
+                    const limb = collapsed ? 0 : Math.sin(t * 5);
+
+                    if (collapsed) {
+                        // Face down on ground — same as knocked out person
+                        const lieX = crawlX;
+                        g.lineStyle(H*0.045, 0x5a4a3a, 1);
+                        g.beginPath(); g.moveTo(lieX - H*0.18, cy - H*0.03); g.lineTo(lieX + H*0.18, cy - H*0.02); g.strokePath();
+                        g.lineStyle(H*0.035, 0x5a4a3a, 1);
+                        g.beginPath();
+                        g.moveTo(lieX + H*0.18, cy - H*0.02); g.lineTo(lieX + H*0.30, cy - H*0.01);
+                        g.moveTo(lieX + H*0.16, cy); g.lineTo(lieX + H*0.28, cy + H*0.015);
+                        g.strokePath();
+                        g.lineStyle(H*0.025, 0xd4a87c, 1);
+                        g.beginPath();
+                        g.moveTo(lieX - H*0.16, cy - H*0.03); g.lineTo(lieX - H*0.24, cy + H*0.01);
+                        g.moveTo(lieX - H*0.12, cy - H*0.01); g.lineTo(lieX - H*0.20, cy - H*0.06);
+                        g.strokePath();
+                        g.fillStyle(0x3a2a1a, 1);
+                        g.fillCircle(lieX - H*0.22, cy - H*0.03, H*0.045);
+                        g.fillStyle(0x1a1a1a, 1);
+                        g.fillCircle(lieX + H*0.30, cy - H*0.01, H*0.016);
+                        g.fillCircle(lieX + H*0.28, cy + H*0.015, H*0.016);
+                    } else {
+                        // Crawling on all fours — FULL SIZE
+                        const torsoY = cy - H*0.16 + bob;
+                        // Torso
+                        g.lineStyle(H*0.08, 0x5a4a3a, 1);
+                        g.beginPath(); g.moveTo(crawlX - H*0.14, torsoY); g.lineTo(crawlX + H*0.14, torsoY); g.strokePath();
+                        // Back legs (knees on ground)
+                        g.lineStyle(H*0.04, 0x5a4a3a, 1);
+                        g.beginPath();
+                        g.moveTo(crawlX - H*0.14, torsoY); g.lineTo(crawlX - H*0.22 + limb*H*0.05, cy);
+                        g.moveTo(crawlX - H*0.08, torsoY); g.lineTo(crawlX - H*0.14 - limb*H*0.05, cy);
+                        g.strokePath();
+                        // Front arms
+                        g.lineStyle(H*0.03, 0xd4a87c, 1);
+                        g.beginPath();
+                        g.moveTo(crawlX + H*0.12, torsoY); g.lineTo(crawlX + H*0.22 - limb*H*0.04, cy);
+                        g.moveTo(crawlX + H*0.08, torsoY); g.lineTo(crawlX + H*0.16 + limb*H*0.04, cy);
+                        g.strokePath();
+                        g.fillStyle(0xd4a87c, 1);
+                        g.fillCircle(crawlX + H*0.22 - limb*H*0.04, cy, H*0.016);
+                        g.fillCircle(crawlX + H*0.16 + limb*H*0.04, cy, H*0.016);
+                        // Head — terrified
+                        const hx = crawlX + H*0.19, hy = torsoY - H*0.03;
+                        g.fillStyle(0x3a2a1a, 1);
+                        g.fillCircle(hx, hy, H*0.045);
+                        g.fillStyle(0xd4a87c, 1);
+                        g.fillCircle(hx + H*0.01, hy + H*0.008, H*0.038);
+                        // Wide terrified eyes
+                        g.fillStyle(0xffffff, 1);
+                        g.fillCircle(hx + H*0.015, hy - H*0.005, H*0.012);
+                        g.fillCircle(hx + H*0.03, hy - H*0.005, H*0.012);
+                        g.fillStyle(0x222222, 1);
+                        g.fillCircle(hx + H*0.017, hy - H*0.003, H*0.005);
+                        g.fillCircle(hx + H*0.032, hy - H*0.003, H*0.005);
+                        // Open mouth (screaming)
+                        g.fillStyle(0x331111, 0.8);
+                        g.fillCircle(hx + H*0.02, hy + H*0.02, H*0.010);
+                    }
                 }
             }
 
@@ -625,13 +657,15 @@ class PlayScene extends Phaser.Scene {
                 // Torso
                 g.lineStyle(H*0.10, dirCol, 1);
                 g.beginPath(); g.moveTo(dirX, dirHipY); g.lineTo(dirX, dirShY); g.strokePath();
-                // Good arm — pointing accusingly left
-                const shake = Math.sin(t * 10) * H*0.01;
+                // LEFT BROKEN ARM — forearm dangling
+                const shake = Math.sin(t * 10) * H*0.02;
                 g.lineStyle(H*0.026, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.14, dirShY + H*0.04); g.strokePath();
+                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.12, dirShY + H*0.10); g.strokePath();
                 g.lineStyle(H*0.022, skin, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.14, dirShY + H*0.04); g.lineTo(dirX - H*0.22, dirShY + H*0.02 + shake); g.strokePath();
-                // BROKEN ARM — forearm dangling, wiggling
+                g.beginPath(); g.moveTo(dirX - H*0.12, dirShY + H*0.10); g.lineTo(dirX - H*0.14 + shake, dirShY + H*0.22); g.strokePath();
+                g.fillStyle(skin, 1);
+                g.fillCircle(dirX - H*0.14 + shake, dirShY + H*0.22, H*0.012);
+                // RIGHT BROKEN ARM — forearm dangling, wiggling
                 const wiggle = Math.sin(t * 12) * H*0.03;
                 g.lineStyle(H*0.026, dirCol, 1);
                 g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(dirX + H*0.12, dirShY + H*0.10); g.strokePath();
@@ -1128,8 +1162,11 @@ class PlayScene extends Phaser.Scene {
         const skin = 0xd4a87c, skinDark = 0xc09670, shirt = 0x3b5998, shirtDark = 0x2d4578;
         const pants = 0x33333f, pantsDark = 0x282832, hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
-        const showThumb = this.stopTime > CONFIG.STOP_BEAT_DURATION / 1000;
-        const thumbProg = showThumb ? Math.min((this.stopTime - CONFIG.STOP_BEAT_DURATION / 1000) * 0.9, 1) : 0;
+        // Bigger crashes = player lies still longer (crash tier multiplies the beat)
+        const beatMult = this.crashTier > 0 ? 1 + this.crashTier * 0.4 : 1;
+        const beatDur = CONFIG.STOP_BEAT_DURATION * beatMult / 1000;
+        const showThumb = this.stopTime > beatDur;
+        const thumbProg = showThumb ? Math.min((this.stopTime - beatDur) * 0.9, 1) : 0;
 
         // Shadow
         g.fillStyle(0x000000, 0.18);
@@ -1253,16 +1290,15 @@ class PlayScene extends Phaser.Scene {
             g.fillStyle(skin, 1);
             g.fillCircle(shoulderX - H*0.15, by + H*0.01, H*0.012);
 
-            // === THUMBS UP ARM (right) ===
+            // === THUMBS UP ARM (right) — extends out at ~15° above horizontal ===
             const rsx = shoulderX + H*0.06;
             const rsy = shoulderY + H*0.01;
             if (armProg > 0) {
-                // Upper arm rises up and forward
-                const elbowX = rsx + H*0.04 * armProg;
-                const elbowY = rsy - H*0.11 * armProg;
-                // Forearm angled slightly (not perfectly vertical — reads better)
-                const wristX = elbowX + H*0.02 * armProg;
-                const wristY = elbowY - H*0.11 * armProg;
+                // Arm extends mostly outward (right) with slight upward angle (~15°)
+                const elbowX = rsx + H*0.10 * armProg;
+                const elbowY = rsy - H*0.03 * armProg;
+                const wristX = elbowX + H*0.10 * armProg;
+                const wristY = elbowY - H*0.03 * armProg;
 
                 // Upper arm (sleeve)
                 g.lineStyle(H*0.032, shirt, 1);
@@ -1427,23 +1463,43 @@ class PlayScene extends Phaser.Scene {
         const g = this.meterGfx; g.clear();
         if (this.playerState !== 'idle') { this.meterLabel.setVisible(false); return; }
         this.meterLabel.setVisible(true);
-        const mx = 30, my = 200, mw = 28, mh = 300;
+        // Meter extends from top to near bottom of screen
+        const mx = 30, my = 100, mw = 28, mh = CONFIG.HEIGHT - 160;
         g.fillStyle(0x1a1a28, 0.9); g.fillRect(mx, my, mw, mh);
         g.lineStyle(1, 0x444466, 0.8); g.strokeRect(mx, my, mw, mh);
-        // Optimal zone — scales with level (more stairs = higher optimal power)
-        const totalDist = this.levelData.segments[0].length + this.levelData.markOffset;
-        const maxDist = CONFIG.MAX_INITIAL_VELOCITY * 2.5; // rough max travel at full power
-        const optimalPower = Math.min(0.90, Math.max(0.38, Math.pow(totalDist / maxDist, 1/CONFIG.METER_POWER_CURVE)));
-        const ozY = my + mh * (1 - optimalPower), ozH = mh * 0.04;
-        g.fillStyle(0x44cc66, 0.25); g.fillRect(mx+2, ozY, mw-4, ozH);
-        g.lineStyle(1, 0x44cc66, 0.5);
-        g.beginPath(); g.moveTo(mx, ozY); g.lineTo(mx+5, ozY); g.moveTo(mx, ozY+ozH); g.lineTo(mx+5, ozY+ozH);
-        g.moveTo(mx+mw-5, ozY); g.lineTo(mx+mw, ozY); g.moveTo(mx+mw-5, ozY+ozH); g.lineTo(mx+mw, ozY+ozH); g.strokePath();
 
+        // Calculate optimal power for this level
+        const totalDist = this.levelData.markX - this.levelData.startX;
+        const maxDist = CONFIG.MAX_INITIAL_VELOCITY * 2.5;
+        const optimalPower = Math.min(0.90, Math.max(0.38, Math.pow(totalDist / maxDist, 1/CONFIG.METER_POWER_CURVE)));
+
+        // Yellow zone (wider, around optimal)
+        const yzHalf = 0.06;
+        const yzTop = my + mh * (1 - (optimalPower + yzHalf));
+        const yzBot = my + mh * (1 - (optimalPower - yzHalf));
+        g.fillStyle(0xcccc44, 0.15); g.fillRect(mx+2, yzTop, mw-4, yzBot - yzTop);
+
+        // Green zone (narrow, at optimal center)
+        const gzHalf = 0.025;
+        const gzTop = my + mh * (1 - (optimalPower + gzHalf));
+        const gzBot = my + mh * (1 - (optimalPower - gzHalf));
+        g.fillStyle(0x44cc66, 0.3); g.fillRect(mx+2, gzTop, mw-4, gzBot - gzTop);
+        // Green zone edge markers
+        g.lineStyle(1, 0x44cc66, 0.6);
+        g.beginPath();
+        g.moveTo(mx, gzTop); g.lineTo(mx+6, gzTop);
+        g.moveTo(mx, gzBot); g.lineTo(mx+6, gzBot);
+        g.moveTo(mx+mw-6, gzTop); g.lineTo(mx+mw, gzTop);
+        g.moveTo(mx+mw-6, gzBot); g.lineTo(mx+mw, gzBot);
+        g.strokePath();
+
+        // Current fill
         const fillY = my + mh * (1 - this.meterValue);
-        g.fillStyle(0xddddf0, 0.5); g.fillRect(mx+2, fillY, mw-4, mh*this.meterValue);
+        g.fillStyle(0xddddf0, 0.4); g.fillRect(mx+2, fillY, mw-4, mh*this.meterValue);
+        // Indicator line
         g.lineStyle(2, 0xffffff, 0.9);
         g.beginPath(); g.moveTo(mx, fillY); g.lineTo(mx+mw, fillY); g.strokePath();
+        // Arrow
         g.fillStyle(0xffffff, 0.9);
         g.fillTriangle(mx+mw+1, fillY, mx+mw+8, fillY-4, mx+mw+8, fillY+4);
     }
@@ -1700,7 +1756,7 @@ const PADS = [
     { name: 'D3O Hip Pads', cost: 120, protection: 5, desc: 'Smart foam. Hardens on impact.' },
     { name: 'Hard Shell Knee', cost: 150, protection: 6, desc: 'Serious protection.' },
     { name: 'Spine Protector', cost: 200, protection: 8, desc: 'Keeps your back intact.' },
-    { name: 'Newspaper & Tape', cost: 20, protection: 1, desc: 'Desperate times...' },
+    { name: 'Newspaper & Tape', cost: 2, protection: 1, desc: 'Desperate times... ($1.50 from the corner store)' },
     { name: 'Full Body Suit', cost: 350, protection: 12, desc: 'The Michelin Man look.' },
     { name: 'Wig w/ Hidden Pads', cost: 100, protection: 3, desc: 'Fashion meets function.' },
 ];
@@ -1746,8 +1802,12 @@ class StoreScene extends Phaser.Scene {
             });
 
             // Protection
-            this.add.text(CONFIG.WIDTH - 280, y + 10, `+${pad.protection} protection`, {
-                fontSize: '14px', fontFamily: 'Arial', color: '#88aa88',
+            const dmgReduction = (pad.protection * 0.3).toFixed(1);
+            this.add.text(CONFIG.WIDTH - 300, y + 8, `+${pad.protection} protection`, {
+                fontSize: '15px', fontFamily: 'Arial', color: '#88cc88',
+            });
+            this.add.text(CONFIG.WIDTH - 300, y + 28, `-${dmgReduction} damage/level`, {
+                fontSize: '11px', fontFamily: 'Arial', color: '#66aa66',
             });
 
             // Buy button or status
