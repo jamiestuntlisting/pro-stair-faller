@@ -19,8 +19,8 @@ const CONFIG = {
     METER_OSCILLATION_SPEED: 3.5,
     METER_POWER_CURVE: 1.3,
     MIN_POWER_FLOOR: 0.35,    // meter value can't go below this — prevents silly low power
-    MAX_INITIAL_VELOCITY: 2200,
-    MAX_ENERGY: 340,
+    MAX_INITIAL_VELOCITY: 4400,
+    MAX_ENERGY: 680,
     BASE_FRICTION: 550,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
@@ -47,7 +47,7 @@ const CONFIG = {
 
     THUMBS_UP_DURATION: 4500,
     STOP_BEAT_DURATION: 2800,  // lie still before thumbs up (ms) — long beat
-    PLAYER_RADIUS: 48,        // tucked ball radius — proportional to person (shoulder width)
+    PLAYER_RADIUS: 68,        // tucked ball radius — ~45% of standing height (torso length)
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
     CAM_SMOOTH: 0.06,
@@ -1418,92 +1418,91 @@ class PlayScene extends Phaser.Scene {
 
     drawRolling(g, x, y, rotation) {
         const r = CONFIG.PLAYER_RADIUS;
-        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const skin = 0xd4a87c;
         const shirt = 0x3b5998, shirtDark = 0x2d4578;
         const pants = 0x33333f, hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
-        // Shadow below the ball
+        // Shadow
         g.fillStyle(0x000000, 0.15);
-        g.fillEllipse(x, y + r + 4, r * 0.7, 5);
+        g.fillEllipse(x, y + r + 4, r * 0.8, 6);
 
-        // === COMPACT BARREL ROLL ===
-        // Person curled on their side — spine follows a C-curve, knees to chest
-        // Everything stays INSIDE the radius circle
+        // === HEXAGONAL BARREL ROLL ===
+        // Person tucked into a ball, seen from the side.
+        // Draw as one connected body that rotates as a unit.
+        // Back (shirt) is the big dome. Head tucked under, knees to chest.
 
-        // Spine curve points — tight C shape
-        const spine0 = rot(0, -r*0.40);  // upper back (near top)
-        const spine1 = rot(r*0.18, 0);   // mid-back curves forward
-        const spine2 = rot(0, r*0.30);   // lower back/butt (near bottom)
+        // Key points — all rotate together as one rigid body
+        const headR = r * 0.22;
+        const head     = rot(0, -r*0.55);       // top: head
+        const shoulder = rot(r*0.35, -r*0.30);  // upper-right: shoulders/upper back
+        const back     = rot(r*0.50, r*0.10);   // right: mid-back (outermost point)
+        const butt     = rot(r*0.20, r*0.45);   // lower-right: butt/hips
+        const knee     = rot(-r*0.25, r*0.40);  // lower-left: knees
+        const shin     = rot(-r*0.40, 0);        // left: shins
+        const foot     = rot(-r*0.25, -r*0.35); // upper-left: feet near head
 
-        // Head tucked at top of C
-        const headPos = rot(-r*0.08, -r*0.48);
-        const headR = r * 0.28;
+        // --- FILLED BODY as one connected shape ---
 
-        // Knees pulled up tight to chest
-        const kneePos = rot(r*0.20, -r*0.22);
-        const footPos = rot(-r*0.05, -r*0.38);
-
-        // Hands clasped around shins
-        const handPos = rot(r*0.12, -r*0.32);
-
-        // --- DRAW BACK TO FRONT ---
-
-        // Torso — thick arc from upper back through mid to lower back
-        // Draw as connected thick line segments forming the C
-        g.lineStyle(r*0.50, shirt, 1);
+        // 1. Back/torso fill — the big blue dome (shirt covers shoulder→back→butt)
+        g.fillStyle(shirt, 1);
         g.beginPath();
-        g.moveTo(spine0.x, spine0.y);
-        g.lineTo(spine1.x, spine1.y);
-        g.strokePath();
-        g.beginPath();
-        g.moveTo(spine1.x, spine1.y);
-        g.lineTo(spine2.x, spine2.y);
-        g.strokePath();
-        // Shirt shadow on the outside curve
-        g.lineStyle(r*0.15, shirtDark, 0.2);
-        g.beginPath();
-        g.moveTo(spine0.x, spine0.y);
-        g.lineTo(spine1.x, spine1.y);
-        g.lineTo(spine2.x, spine2.y);
-        g.strokePath();
+        g.moveTo(head.x, head.y);
+        g.lineTo(shoulder.x, shoulder.y);
+        g.lineTo(back.x, back.y);
+        g.lineTo(butt.x, butt.y);
+        g.lineTo(knee.x, knee.y);
+        g.lineTo(shin.x, shin.y);
+        g.lineTo(foot.x, foot.y);
+        g.closePath();
+        g.fillPath();
 
-        // Pants — from hip down
-        g.lineStyle(r*0.40, pants, 1);
+        // 2. Shirt shadow on the outer curve
+        g.fillStyle(shirtDark, 0.25);
         g.beginPath();
-        g.moveTo(spine2.x, spine2.y);
-        g.lineTo(kneePos.x, kneePos.y);
-        g.strokePath();
+        g.moveTo(shoulder.x, shoulder.y);
+        g.lineTo(back.x, back.y);
+        g.lineTo(butt.x, butt.y);
+        g.lineTo(x, y);  // center
+        g.closePath();
+        g.fillPath();
 
-        // Shin (pants) — knee to foot
-        g.lineStyle(r*0.28, pants, 1);
+        // 3. Pants area — lower body (butt → knee → shin)
+        g.fillStyle(pants, 1);
         g.beginPath();
-        g.moveTo(kneePos.x, kneePos.y);
-        g.lineTo(footPos.x, footPos.y);
-        g.strokePath();
+        g.moveTo(butt.x, butt.y);
+        g.lineTo(knee.x, knee.y);
+        g.lineTo(shin.x, shin.y);
+        g.lineTo(x, y); // center
+        g.closePath();
+        g.fillPath();
 
-        // Shoe
+        // 4. Shoes at feet
         g.fillStyle(shoe, 1);
-        g.fillCircle(footPos.x, footPos.y, r*0.10);
+        g.fillCircle(foot.x, foot.y, r*0.09);
+        g.fillCircle(shin.x, shin.y, r*0.07);
 
-        // Arm — from shoulder area down to hands at shin
-        g.lineStyle(r*0.16, shirt, 1);
+        // 5. Arms — thick lines from shoulder area to knee area (clasping shins)
+        g.lineStyle(r*0.12, shirt, 0.8);
         g.beginPath();
-        g.moveTo(spine0.x, spine0.y);
-        g.lineTo(handPos.x, handPos.y);
+        g.moveTo(shoulder.x, shoulder.y);
+        g.lineTo(shin.x, shin.y);
         g.strokePath();
-        // Forearm/hand (skin)
+        // Hands (skin)
         g.fillStyle(skin, 1);
-        g.fillCircle(handPos.x, handPos.y, r*0.10);
+        g.fillCircle(shin.x, shin.y, r*0.08);
 
-        // Head — tucked chin to chest
+        // 6. Head — tucked between knees and feet
+        const headX = (head.x + foot.x) / 2;
+        const headY = (head.y + foot.y) / 2;
+        // Hair (back of head)
         g.fillStyle(hair, 1);
-        g.fillCircle(headPos.x, headPos.y, headR);
-        // Face (turned inward/down)
-        const faceOff = rot(-r*0.02, -r*0.38);
+        g.fillCircle(head.x, head.y, headR);
+        // Face (mostly hidden, tucked inward)
+        const faceDir = rot(-(headR*0.4), -r*0.45);
         g.fillStyle(skin, 1);
-        g.fillCircle(faceOff.x, faceOff.y, headR*0.78);
+        g.fillCircle(faceDir.x, faceDir.y, headR * 0.7);
     }
 
     // ================================================================
@@ -1636,9 +1635,9 @@ class PlayScene extends Phaser.Scene {
         const onFlat = seg.angle === 0;
         const rollSpeed = onFlat ? 0.6 : 1; // on flat ground, still rolling but slower
         this.rollRotation += (dist / circ) * Math.PI * 2 * rollSpeed;
-        // Draw ball sitting ON the surface — center offset by radius + small buffer
+        // Draw ball sitting ON the surface — center offset by radius + buffer
         // Extra offset on stairs prevents clipping through step geometry
-        const extraOff = onFlat ? 0 : 8;
+        const extraOff = onFlat ? 0 : 12;
         const drawYOff = CONFIG.PLAYER_RADIUS + extraOff;
         this.drawPlayer(pos.x, pos.y - drawYOff, this.rollRotation);
 
@@ -1748,14 +1747,14 @@ class PlayScene extends Phaser.Scene {
             const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
             this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
         }
-        const earned = d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5));
+        const failed = d.crashed || d.distFeet > 5;
+        const earned = failed ? 0 : (d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5)));
         this.currency += earned;
         this.showingScore = false;
         this.time.delayedCall(CONFIG.THUMBS_UP_DURATION, () => {
             this.showingScore = true;
             const hs = `Health: ${Math.round(this.currentHealth)}/${CONFIG.BASE_HEALTH}  (-${Math.round(d.healthCost)})`;
-            const cs = `+$${earned}  (Total: $${this.currency})`;
-            const failed = d.crashed || d.distFeet > 5;
+            const cs = earned > 0 ? `+$${earned}  (Total: $${this.currency})` : `Total: $${this.currency}`;
             if (this.currentHealth <= 0) {
                 this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
