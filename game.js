@@ -1491,31 +1491,6 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x1a1a28, 0.9); g.fillRect(mx, my, mw, mh);
         g.lineStyle(1, 0x444466, 0.8); g.strokeRect(mx, my, mw, mh);
 
-        // Calculate optimal power for this level
-        const totalDist = this.levelData.markX - this.levelData.startX;
-        const maxDist = CONFIG.MAX_INITIAL_VELOCITY * 2.5;
-        const optimalPower = Math.min(0.90, Math.max(0.38, Math.pow(totalDist / maxDist, 1/CONFIG.METER_POWER_CURVE)));
-
-        // Yellow zone (wider, around optimal)
-        const yzHalf = 0.06;
-        const yzTop = my + mh * (1 - (optimalPower + yzHalf));
-        const yzBot = my + mh * (1 - (optimalPower - yzHalf));
-        g.fillStyle(0xcccc44, 0.15); g.fillRect(mx+2, yzTop, mw-4, yzBot - yzTop);
-
-        // Green zone (narrow, at optimal center)
-        const gzHalf = 0.025;
-        const gzTop = my + mh * (1 - (optimalPower + gzHalf));
-        const gzBot = my + mh * (1 - (optimalPower - gzHalf));
-        g.fillStyle(0x44cc66, 0.3); g.fillRect(mx+2, gzTop, mw-4, gzBot - gzTop);
-        // Green zone edge markers
-        g.lineStyle(1, 0x44cc66, 0.6);
-        g.beginPath();
-        g.moveTo(mx, gzTop); g.lineTo(mx+6, gzTop);
-        g.moveTo(mx, gzBot); g.lineTo(mx+6, gzBot);
-        g.moveTo(mx+mw-6, gzTop); g.lineTo(mx+mw, gzTop);
-        g.moveTo(mx+mw-6, gzBot); g.lineTo(mx+mw, gzBot);
-        g.strokePath();
-
         // Current fill
         const fillY = my + mh * (1 - this.meterValue);
         g.fillStyle(0xddddf0, 0.4); g.fillRect(mx+2, fillY, mw-4, mh*this.meterValue);
