@@ -17,7 +17,7 @@ const CONFIG = {
     MIN_POWER_FLOOR: 0.35,    // meter value can't go below this — prevents silly low power
     MAX_INITIAL_VELOCITY: 2200,
     MAX_ENERGY: 340,
-    BASE_FRICTION: 520,
+    BASE_FRICTION: 340,
     SLOPE_FRICTION_REDUCTION: 0.7,
     GRAVITY_ASSIST: 280,
     MAX_ENERGY_DRAIN_RATE: 0.38,
@@ -41,8 +41,8 @@ const CONFIG = {
     CRASH_TIER_HEALTH_COSTS: [5, 10, 18, 28, 40],
     CRASH_TIER_SCORE_PENALTIES: [0.5, 1.5, 3.0, 5.0, 8.0],
 
-    THUMBS_UP_DURATION: 3000,
-    STOP_BEAT_DURATION: 1400,  // lie still before thumbs up (ms) — longer beat
+    THUMBS_UP_DURATION: 4500,
+    STOP_BEAT_DURATION: 2800,  // lie still before thumbs up (ms) — long beat
     PLAYER_RADIUS: 75,        // tucked ball radius
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
@@ -194,16 +194,16 @@ class PlayScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 3,
         }).setOrigin(0.5).setScrollFactor(0);
 
-        this.scoreText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 50, '', {
-            fontSize: '48px', fontFamily: 'Georgia, serif', color: '#ffffff',
+        this.scoreText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 60, '', {
+            fontSize: '60px', fontFamily: 'Georgia, serif', color: '#ffffff',
+            stroke: '#000000', strokeThickness: 7,
+        }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
+        this.crashText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 130, '', {
+            fontSize: '52px', fontFamily: 'Georgia, serif', color: '#ff3333',
             stroke: '#000000', strokeThickness: 6,
         }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
-        this.crashText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 110, '', {
-            fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ff3333',
-            stroke: '#000000', strokeThickness: 5,
-        }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
         this.promptText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 30, '', {
-            fontSize: '16px', fontFamily: 'Arial', color: '#aaaacc',
+            fontSize: '20px', fontFamily: 'Arial', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 3, align: 'center',
         }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
         this.hintText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 30, 'Press SPACE to set power', {
@@ -605,66 +605,181 @@ class PlayScene extends Phaser.Scene {
                 }
             }
 
-            // === DIRECTOR — stumbling far right, angry, shaking fist ===
+            // === DIRECTOR — standing far right, screaming, broken arm ===
             {
                 const stumbleDist = afterT * (isBulldoze ? H*0.9 : H*0.5);
                 const dirX = crew3X + stumbleDist;
-                // Standing but furious — use drawCrewPerson in panic mode far away
-                this.drawCrewPerson(g, dirX, cy, 0x2a2a3a, true, true, 0, 2, 0, 'confident');
+                // Draw custom — standing with one arm dangling broken, mouth open screaming
+                const skin = 0xd4a87c, dirCol = 0x2a2a3a, hair = 0x3a2a1a;
+                const dirHipY = cy - H*0.28, dirShY = cy - H*0.64;
+                // Legs
+                g.lineStyle(H*0.035, dirCol, 1);
+                g.beginPath();
+                g.moveTo(dirX - H*0.03, dirHipY); g.lineTo(dirX - H*0.04, cy);
+                g.moveTo(dirX + H*0.03, dirHipY); g.lineTo(dirX + H*0.04, cy);
+                g.strokePath();
+                // Shoes
+                g.fillStyle(0x1a1a1a, 1);
+                g.fillRect(dirX - H*0.06, cy - H*0.008, H*0.05, H*0.02);
+                g.fillRect(dirX + H*0.02, cy - H*0.008, H*0.05, H*0.02);
+                // Torso
+                g.lineStyle(H*0.10, dirCol, 1);
+                g.beginPath(); g.moveTo(dirX, dirHipY); g.lineTo(dirX, dirShY); g.strokePath();
+                // Good arm — pointing accusingly left
+                const shake = Math.sin(t * 10) * H*0.01;
+                g.lineStyle(H*0.026, dirCol, 1);
+                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.14, dirShY + H*0.04); g.strokePath();
+                g.lineStyle(H*0.022, skin, 1);
+                g.beginPath(); g.moveTo(dirX - H*0.14, dirShY + H*0.04); g.lineTo(dirX - H*0.22, dirShY + H*0.02 + shake); g.strokePath();
+                // BROKEN ARM — forearm dangling, wiggling
+                const wiggle = Math.sin(t * 12) * H*0.03;
+                g.lineStyle(H*0.026, dirCol, 1);
+                g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(dirX + H*0.12, dirShY + H*0.10); g.strokePath();
+                g.lineStyle(H*0.022, skin, 1);
+                g.beginPath();
+                g.moveTo(dirX + H*0.12, dirShY + H*0.10);
+                g.lineTo(dirX + H*0.10 + wiggle, dirShY + H*0.22); // forearm dangles down, wiggling
+                g.strokePath();
+                g.fillStyle(skin, 1);
+                g.fillCircle(dirX + H*0.10 + wiggle, dirShY + H*0.22, H*0.012);
+                // Neck + Head
+                g.fillStyle(skin, 1);
+                g.fillRect(dirX - H*0.014, dirShY - H*0.05, H*0.028, H*0.05);
+                const headR = H*0.05;
+                const headY = dirShY - H*0.10;
+                g.fillStyle(hair, 1);
+                g.fillCircle(dirX, headY, headR);
+                g.fillRect(dirX - headR*0.9, headY - headR*0.7, headR*1.8, headR*0.5);
+                g.fillStyle(skin, 1);
+                g.fillCircle(dirX, headY + headR*0.15, headR*0.82);
+                // Beret
+                g.fillStyle(0x1a1a2a, 1);
+                g.fillCircle(dirX, headY - headR*0.4, headR*0.7);
+                g.fillRect(dirX - headR*0.8, headY - headR*0.5, headR*1.6, headR*0.3);
+                // Screaming face — wide open mouth, angry eyes
+                g.fillStyle(0xffffff, 1);
+                g.fillCircle(dirX - headR*0.3, headY, headR*0.18);
+                g.fillCircle(dirX + headR*0.3, headY, headR*0.18);
+                g.fillStyle(0x222222, 1);
+                g.fillCircle(dirX - headR*0.28, headY - headR*0.02, headR*0.09);
+                g.fillCircle(dirX + headR*0.28, headY - headR*0.02, headR*0.09);
+                // Angry eyebrows
+                g.lineStyle(H*0.005, hair, 0.8);
+                g.beginPath();
+                g.moveTo(dirX - headR*0.45, headY - headR*0.10); g.lineTo(dirX - headR*0.15, headY - headR*0.20);
+                g.moveTo(dirX + headR*0.15, headY - headR*0.20); g.lineTo(dirX + headR*0.45, headY - headR*0.10);
+                g.strokePath();
+                // Open mouth (screaming)
+                g.fillStyle(0x331111, 1);
+                g.fillCircle(dirX, headY + headR*0.40, headR*0.22);
+                g.fillStyle(0xcc4444, 0.4);
+                g.fillCircle(dirX, headY + headR*0.42, headR*0.14);
             }
         }
     }
 
     drawCameraRig(g, cx, cy, tilt, drop) {
         const H = CONFIG.PERSON_HEIGHT;
-        const S = H / 300; // scale factor relative to baseline
-        const py = cy - H*0.38 + drop;
+        const S = H / 300;
+        const py = cy - H*0.40 + drop;
 
-        // Tripod legs
-        g.lineStyle(5*S, 0x4a4a4a, 1);
+        // Tripod legs (thicker, sturdier)
+        g.lineStyle(6*S, 0x3a3a3a, 1);
         g.beginPath();
-        g.moveTo(cx, py); g.lineTo(cx - 55*S, cy);
-        g.moveTo(cx, py); g.lineTo(cx + 55*S, cy);
-        g.moveTo(cx, py); g.lineTo(cx + 8*S, cy);
+        g.moveTo(cx, py); g.lineTo(cx - 60*S, cy);
+        g.moveTo(cx, py); g.lineTo(cx + 60*S, cy);
+        g.moveTo(cx, py); g.lineTo(cx + 10*S, cy);
         g.strokePath();
-        g.fillStyle(0x3a3a3a, 1);
-        g.fillCircle(cx, py, 12*S);
+        // Tripod feet
+        g.fillStyle(0x333333, 1);
+        g.fillRect(cx - 65*S, cy - 3*S, 14*S, 5*S);
+        g.fillRect(cx + 53*S, cy - 3*S, 14*S, 5*S);
+        // Tripod head
+        g.fillStyle(0x2a2a2a, 1);
+        g.fillCircle(cx, py, 14*S);
 
-        // Camera body
-        const armLen = 60*S;
+        // Camera mounting arm
+        const armLen = 55*S;
         const bx = cx + Math.sin(tilt) * armLen;
         const by = py - Math.cos(tilt) * armLen + drop;
-        g.fillStyle(0x222226, 1);
-        g.fillCircle(bx + 4*S, by + 4*S, 40*S);
-        g.fillStyle(0x3a3a42, 1);
-        g.fillCircle(bx, by, 38*S);
-        g.fillStyle(0x44444c, 1);
-        g.fillRect(bx - 30*S, by - 22*S, 60*S, 44*S);
-        g.fillStyle(0x333338, 1);
-        g.fillRect(bx - 12*S, by - 36*S, 24*S, 16*S);
 
-        // Lens
-        const lx = bx - Math.cos(tilt) * 58*S;
-        const ly = by + Math.sin(tilt) * 58*S;
-        g.fillStyle(0x2a2a35, 1);
-        g.fillCircle(lx, ly, 22*S);
-        g.fillStyle(0x3a4a6a, 0.8);
+        // === ARRI ALEXA-STYLE CAMERA BODY ===
+        // Main body — dark rectangular block
+        const bw = 65*S, bh = 45*S;
+        g.fillStyle(0x2a2a30, 1);
+        g.fillRect(bx - bw/2, by - bh/2, bw, bh);
+        // Body bevels/panels
+        g.fillStyle(0x333340, 1);
+        g.fillRect(bx - bw/2 + 3*S, by - bh/2 + 3*S, bw - 6*S, bh/3);
+        g.fillStyle(0x222228, 1);
+        g.fillRect(bx - bw/2, by + bh/6, bw, bh/3);
+        // Body edge highlight
+        g.lineStyle(1, 0x444455, 0.5);
+        g.strokeRect(bx - bw/2, by - bh/2, bw, bh);
+
+        // Top handle/cage
+        g.lineStyle(4*S, 0x333338, 1);
+        g.beginPath();
+        g.moveTo(bx - bw*0.3, by - bh/2); g.lineTo(bx - bw*0.3, by - bh/2 - 18*S);
+        g.lineTo(bx + bw*0.3, by - bh/2 - 18*S); g.lineTo(bx + bw*0.3, by - bh/2);
+        g.strokePath();
+
+        // Antennas (2 thin sticks on top)
+        g.lineStyle(2*S, 0x444448, 1);
+        g.beginPath();
+        g.moveTo(bx - bw*0.15, by - bh/2 - 18*S); g.lineTo(bx - bw*0.15 - 3*S, by - bh/2 - 40*S);
+        g.moveTo(bx + bw*0.15, by - bh/2 - 18*S); g.lineTo(bx + bw*0.15 + 3*S, by - bh/2 - 40*S);
+        g.strokePath();
+        // Antenna tips
+        g.fillStyle(0x555560, 1);
+        g.fillCircle(bx - bw*0.15 - 3*S, by - bh/2 - 40*S, 2*S);
+        g.fillCircle(bx + bw*0.15 + 3*S, by - bh/2 - 40*S, 2*S);
+
+        // === LENS BARREL (pointing LEFT toward player) ===
+        const lensLen = 55*S;
+        const lx = bx - Math.cos(tilt) * (bw/2 + lensLen);
+        const ly = by + Math.sin(tilt) * (bw/2 + lensLen);
+        const lmx = bx - Math.cos(tilt) * bw/2;
+        const lmy = by + Math.sin(tilt) * bw/2;
+        // Lens barrel (dark cylinder)
+        g.lineStyle(28*S, 0x222228, 1);
+        g.beginPath(); g.moveTo(lmx, lmy); g.lineTo(lx, ly); g.strokePath();
+        // Lens barrel rings
+        g.lineStyle(30*S, 0x2a2a32, 1);
+        const rmx = (lmx + lx) / 2, rmy = (lmy + ly) / 2;
+        g.beginPath(); g.moveTo(rmx - 3*S, rmy); g.lineTo(rmx + 3*S, rmy); g.strokePath();
+        // Front glass element
+        g.fillStyle(0x1a1a22, 1);
         g.fillCircle(lx, ly, 16*S);
-        g.fillStyle(0x5577aa, 0.6);
-        g.fillCircle(lx, ly, 11*S);
-        g.fillStyle(0xaaccff, 0.25);
-        g.fillCircle(lx - 4*S, ly - 4*S, 5*S);
+        g.fillStyle(0x2a3a5a, 0.7);
+        g.fillCircle(lx, ly, 13*S);
+        g.fillStyle(0x4466aa, 0.5);
+        g.fillCircle(lx, ly, 9*S);
+        // Lens glint
+        g.fillStyle(0xaaccff, 0.3);
+        g.fillCircle(lx - 4*S, ly - 4*S, 4*S);
 
-        // Viewfinder
-        const vx = bx + Math.cos(tilt) * 38*S + Math.sin(tilt) * 22*S;
-        const vy = by - Math.sin(tilt) * 38*S + Math.cos(tilt) * 22*S;
-        g.fillStyle(0x333336, 1);
-        g.fillRect(vx - 9*S, vy - 9*S, 18*S, 18*S);
-        g.fillStyle(0x88aacc, 0.3);
-        g.fillRect(vx - 6*S, vy - 6*S, 12*S, 12*S);
+        // === VIEWFINDER (arm extending right+up, with small monitor) ===
+        const vArmX = bx + Math.cos(tilt) * bw*0.4;
+        const vArmY = by - bh/2 - 8*S;
+        const vx = vArmX + 25*S;
+        const vy = vArmY - 15*S;
+        g.lineStyle(3*S, 0x333338, 1);
+        g.beginPath(); g.moveTo(vArmX, vArmY); g.lineTo(vx, vy); g.strokePath();
+        // Small monitor screen
+        g.fillStyle(0x222226, 1);
+        g.fillRect(vx - 12*S, vy - 10*S, 24*S, 18*S);
+        g.fillStyle(0x334455, 0.4);
+        g.fillRect(vx - 10*S, vy - 8*S, 20*S, 14*S);
 
-        g.fillStyle(0xff2222, 0.8);
-        g.fillCircle(bx + 28*S, by - 18*S, 4*S);
+        // Tally light (red recording indicator)
+        g.fillStyle(0xff2222, 0.9);
+        g.fillCircle(bx + bw/2 - 5*S, by - bh/2 + 5*S, 3*S);
+
+        // Side panel details (buttons/ports)
+        g.fillStyle(0x444450, 0.6);
+        g.fillRect(bx + bw/2 - 8*S, by - 5*S, 6*S, 4*S);
+        g.fillRect(bx + bw/2 - 8*S, by + 3*S, 6*S, 4*S);
     }
 
     drawCrewPerson(g, baseX, baseY, bodyCol, hasBeret, hasMonitor, scatter, panic, fly, pose) {
@@ -1014,7 +1129,7 @@ class PlayScene extends Phaser.Scene {
         const pants = 0x33333f, pantsDark = 0x282832, hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
         const showThumb = this.stopTime > CONFIG.STOP_BEAT_DURATION / 1000;
-        const thumbProg = showThumb ? Math.min((this.stopTime - CONFIG.STOP_BEAT_DURATION / 1000) * 1.8, 1) : 0;
+        const thumbProg = showThumb ? Math.min((this.stopTime - CONFIG.STOP_BEAT_DURATION / 1000) * 0.9, 1) : 0;
 
         // Shadow
         g.fillStyle(0x000000, 0.18);
@@ -1315,8 +1430,11 @@ class PlayScene extends Phaser.Scene {
         const mx = 30, my = 200, mw = 28, mh = 300;
         g.fillStyle(0x1a1a28, 0.9); g.fillRect(mx, my, mw, mh);
         g.lineStyle(1, 0x444466, 0.8); g.strokeRect(mx, my, mw, mh);
-        // Optimal zone
-        const ozY = my + mh * (1 - 0.70), ozH = mh * 0.04;
+        // Optimal zone — scales with level (more stairs = higher optimal power)
+        const totalDist = this.levelData.segments[0].length + this.levelData.markOffset;
+        const maxDist = CONFIG.MAX_INITIAL_VELOCITY * 2.5; // rough max travel at full power
+        const optimalPower = Math.min(0.90, Math.max(0.38, Math.pow(totalDist / maxDist, 1/CONFIG.METER_POWER_CURVE)));
+        const ozY = my + mh * (1 - optimalPower), ozH = mh * 0.04;
         g.fillStyle(0x44cc66, 0.25); g.fillRect(mx+2, ozY, mw-4, ozH);
         g.lineStyle(1, 0x44cc66, 0.5);
         g.beginPath(); g.moveTo(mx, ozY); g.lineTo(mx+5, ozY); g.moveTo(mx, ozY+ozH); g.lineTo(mx+5, ozY+ozH);
@@ -1434,9 +1552,12 @@ class PlayScene extends Phaser.Scene {
         const pos = this.getPositionOnSegment(this.currentSegment, this.distAlongSegment);
         this.playerWorldX = pos.x; this.playerWorldY = pos.y;
         const circ = 2 * Math.PI * CONFIG.PLAYER_RADIUS;
-        const rollSpeed = seg.angle === 0 ? 0.1 : 1; // on flat ground, barely rotate (sliding/skidding)
+        const onFlat = seg.angle === 0;
+        const rollSpeed = onFlat ? 0.6 : 1; // on flat ground, still rolling but slower
         this.rollRotation += (dist / circ) * Math.PI * 2 * rollSpeed;
-        this.drawPlayer(pos.x, pos.y - CONFIG.PLAYER_RADIUS - 4, this.rollRotation);
+        // On flat ground, draw closer to surface (rolling on the ground, not bouncing above it)
+        const drawYOff = onFlat ? CONFIG.PLAYER_RADIUS * 0.4 : CONFIG.PLAYER_RADIUS + 4;
+        this.drawPlayer(pos.x, pos.y - drawYOff, this.rollRotation);
 
         if (this.playerVelocity <= 0 || this.playerEnergy <= 0) { this.playerVelocity = 0; this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return; }
         if (this.playerWorldX >= this.levelData.cameraX) {
