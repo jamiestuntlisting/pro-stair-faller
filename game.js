@@ -679,25 +679,32 @@ class PlayScene extends Phaser.Scene {
                     const limb = collapsed ? 0 : Math.sin(t * 5);
 
                     if (collapsed) {
-                        // Face down on ground — same as knocked out person
+                        // Face down on ground — head stays on RIGHT (same as crawl direction)
                         const lieX = crawlX;
+                        // Torso
                         g.lineStyle(H*0.045, 0x5a4a3a, 1);
-                        g.beginPath(); g.moveTo(lieX - H*0.18, cy - H*0.03); g.lineTo(lieX + H*0.18, cy - H*0.02); g.strokePath();
+                        g.beginPath(); g.moveTo(lieX - H*0.18, cy - H*0.02); g.lineTo(lieX + H*0.18, cy - H*0.03); g.strokePath();
+                        // Legs trailing LEFT
                         g.lineStyle(H*0.035, 0x5a4a3a, 1);
                         g.beginPath();
-                        g.moveTo(lieX + H*0.18, cy - H*0.02); g.lineTo(lieX + H*0.30, cy - H*0.01);
-                        g.moveTo(lieX + H*0.16, cy); g.lineTo(lieX + H*0.28, cy + H*0.015);
+                        g.moveTo(lieX - H*0.18, cy - H*0.02); g.lineTo(lieX - H*0.30, cy - H*0.01);
+                        g.moveTo(lieX - H*0.16, cy); g.lineTo(lieX - H*0.28, cy + H*0.015);
                         g.strokePath();
+                        // Shoes on LEFT
+                        g.fillStyle(0x1a1a1a, 1);
+                        g.fillCircle(lieX - H*0.30, cy - H*0.01, H*0.016);
+                        g.fillCircle(lieX - H*0.28, cy + H*0.015, H*0.016);
+                        // Arms splayed forward (RIGHT)
                         g.lineStyle(H*0.025, 0xd4a87c, 1);
                         g.beginPath();
-                        g.moveTo(lieX - H*0.16, cy - H*0.03); g.lineTo(lieX - H*0.24, cy + H*0.01);
-                        g.moveTo(lieX - H*0.12, cy - H*0.01); g.lineTo(lieX - H*0.20, cy - H*0.06);
+                        g.moveTo(lieX + H*0.16, cy - H*0.03); g.lineTo(lieX + H*0.24, cy + H*0.01);
+                        g.moveTo(lieX + H*0.12, cy - H*0.01); g.lineTo(lieX + H*0.20, cy - H*0.06);
                         g.strokePath();
+                        // Head on RIGHT (same direction as crawling)
                         g.fillStyle(0x3a2a1a, 1);
-                        g.fillCircle(lieX - H*0.22, cy - H*0.03, H*0.045);
-                        g.fillStyle(0x1a1a1a, 1);
-                        g.fillCircle(lieX + H*0.30, cy - H*0.01, H*0.016);
-                        g.fillCircle(lieX + H*0.28, cy + H*0.015, H*0.016);
+                        g.fillCircle(lieX + H*0.22, cy - H*0.03, H*0.045);
+                        g.fillStyle(0xd4a87c, 0.5);
+                        g.fillCircle(lieX + H*0.23, cy - H*0.01, H*0.03);
                     } else {
                         // Crawling on all fours — FULL SIZE
                         const torsoY = cy - H*0.16 + bob;
@@ -1493,9 +1500,10 @@ class PlayScene extends Phaser.Scene {
     drawRolling(g, x, y, rotation) {
         const r = CONFIG.PLAYER_RADIUS;
         const c = this.costume || COSTUMES[0];
-        const skin = 0xd4a87c;
-        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
-        const pants = c.pants, hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const skin = 0xd4a87c, skinDark = 0xb08860;
+        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.7 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.7 | 0) << 8 | ((shirt & 0xff) * 0.7 | 0);
+        const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.7 | 0) << 16 | ((pants >> 8 & 0xff) * 0.7 | 0) << 8 | ((pants & 0xff) * 0.7 | 0);
+        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
@@ -1503,81 +1511,128 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x000000, 0.15);
         g.fillEllipse(x, y + r + 4, r * 0.8, 6);
 
-        // === HEXAGONAL BARREL ROLL ===
-        // Person tucked into a ball, seen from the side.
-        // Draw as one connected body that rotates as a unit.
-        // Back (shirt) is the big dome. Head tucked under, knees to chest.
+        // === BARREL ROLL — anatomical body parts forming a ball ===
+        // Like the reference sketch: curved back on outside, knees to chest,
+        // head tucked, arms wrapping shins. All thick rounded limb segments.
+        // NO filled circles for the body — only body-part lines.
 
-        // Key points — all rotate together as one rigid body
-        const headR = r * 0.22;
-        const head     = rot(0, -r*0.55);       // top: head
-        const shoulder = rot(r*0.35, -r*0.30);  // upper-right: shoulders/upper back
-        const back     = rot(r*0.50, r*0.10);   // right: mid-back (outermost point)
-        const butt     = rot(r*0.20, r*0.45);   // lower-right: butt/hips
-        const knee     = rot(-r*0.25, r*0.40);  // lower-left: knees
-        const shin     = rot(-r*0.40, 0);        // left: shins
-        const foot     = rot(-r*0.25, -r*0.35); // upper-left: feet near head
+        // Body joint positions (rotate as unit)
+        // Head is on the POSITIVE X side (forward/right) for a forward roll
+        const neck      = rot(-r*0.05, -r*0.52);  // top of back/neck area
+        const midBack   = rot(-r*0.48, -r*0.10);  // outer curve of back (LEFT = behind)
+        const lowBack   = rot(-r*0.35, r*0.32);   // lower back
+        const butt      = rot(-r*0.05, r*0.48);   // bottom
+        const knee      = rot(r*0.38, r*0.22);    // knees pulled up (RIGHT = front)
+        const shin      = rot(r*0.38, -r*0.15);   // shins going up
+        const foot      = rot(r*0.18, -r*0.42);   // feet near head
+        const headPos   = rot(r*0.08, -r*0.50);   // head tucked at top-front (RIGHT)
+        const shoulder  = rot(-r*0.30, -r*0.38);  // shoulder area (behind)
+        const hand      = rot(r*0.42, r*0.02);    // hands clasping shins (front)
 
-        // --- FILLED BODY as one connected shape ---
+        // Limb thickness (proportional to radius)
+        const backT = r * 0.38;  // back/torso is thickest
+        const thighT = r * 0.28; // thighs
+        const shinT = r * 0.20;  // shins
+        const armT = r * 0.14;   // arms
 
-        // 1. Back/torso fill — the big blue dome (shirt covers shoulder→back→butt)
-        g.fillStyle(shirt, 1);
+        // --- DRAW BACK TO FRONT ---
+
+        // 1. BACK — the big curved arc (3 segments: neck→midBack→lowBack→butt)
+        //    This is the OUTERMOST part, the shirt-covered spine curve
+        g.lineStyle(backT, shirt, 1);
         g.beginPath();
-        g.moveTo(head.x, head.y);
+        g.moveTo(neck.x, neck.y);
         g.lineTo(shoulder.x, shoulder.y);
-        g.lineTo(back.x, back.y);
-        g.lineTo(butt.x, butt.y);
-        g.lineTo(knee.x, knee.y);
-        g.lineTo(shin.x, shin.y);
-        g.lineTo(foot.x, foot.y);
-        g.closePath();
-        g.fillPath();
-
-        // 2. Shirt shadow on the outer curve
-        g.fillStyle(shirtDark, 0.25);
+        g.strokePath();
         g.beginPath();
         g.moveTo(shoulder.x, shoulder.y);
-        g.lineTo(back.x, back.y);
-        g.lineTo(butt.x, butt.y);
-        g.lineTo(x, y);  // center
-        g.closePath();
-        g.fillPath();
+        g.lineTo(midBack.x, midBack.y);
+        g.strokePath();
+        g.beginPath();
+        g.moveTo(midBack.x, midBack.y);
+        g.lineTo(lowBack.x, lowBack.y);
+        g.strokePath();
 
-        // 3. Pants area — lower body (butt → knee → shin)
-        g.fillStyle(pants, 1);
+        // Back shadow — darker stripe along the outer curve
+        g.lineStyle(backT * 0.4, shirtDark, 0.3);
+        g.beginPath();
+        g.moveTo(shoulder.x, shoulder.y);
+        g.lineTo(midBack.x, midBack.y);
+        g.lineTo(lowBack.x, lowBack.y);
+        g.strokePath();
+
+        // 2. BUTT/HIP — transition from shirt to pants
+        g.lineStyle(backT * 0.9, pants, 1);
+        g.beginPath();
+        g.moveTo(lowBack.x, lowBack.y);
+        g.lineTo(butt.x, butt.y);
+        g.strokePath();
+
+        // 3. THIGHS — butt to knees (pants)
+        g.lineStyle(thighT, pants, 1);
         g.beginPath();
         g.moveTo(butt.x, butt.y);
         g.lineTo(knee.x, knee.y);
-        g.lineTo(shin.x, shin.y);
-        g.lineTo(x, y); // center
-        g.closePath();
-        g.fillPath();
+        g.strokePath();
 
-        // 4. Shoes at feet
-        g.fillStyle(shoe, 1);
-        g.fillCircle(foot.x, foot.y, r*0.09);
-        g.fillCircle(shin.x, shin.y, r*0.07);
-
-        // 5. Arms — thick lines from shoulder area to knee area (clasping shins)
-        g.lineStyle(r*0.12, shirt, 0.8);
+        // 4. SHINS — knees up to feet (pants)
+        g.lineStyle(shinT, pants, 1);
         g.beginPath();
-        g.moveTo(shoulder.x, shoulder.y);
+        g.moveTo(knee.x, knee.y);
         g.lineTo(shin.x, shin.y);
         g.strokePath();
-        // Hands (skin)
-        g.fillStyle(skin, 1);
-        g.fillCircle(shin.x, shin.y, r*0.08);
+        g.beginPath();
+        g.moveTo(shin.x, shin.y);
+        g.lineTo(foot.x, foot.y);
+        g.strokePath();
 
-        // 6. Head — tucked between knees and feet
-        const headX = (head.x + foot.x) / 2;
-        const headY = (head.y + foot.y) / 2;
-        // Hair (back of head)
-        g.fillStyle(hair, 1);
-        g.fillCircle(head.x, head.y, headR);
-        // Face (mostly hidden, tucked inward)
-        const faceDir = rot(-(headR*0.4), -r*0.45);
+        // Knee bump
+        g.fillStyle(pantsDark, 0.5);
+        g.fillCircle(knee.x, knee.y, thighT * 0.45);
+
+        // 5. SHOES
+        g.fillStyle(shoe, 1);
+        g.fillCircle(foot.x, foot.y, r * 0.09);
+
+        // 6. ARMS — upper arm from shoulder, forearm wraps to hands at shins
+        //    Back arm (behind the legs)
+        g.lineStyle(armT, shirtDark, 0.6);
+        g.beginPath();
+        g.moveTo(neck.x, neck.y);
+        g.lineTo(rot(r*0.30, r*0.10).x, rot(r*0.30, r*0.10).y);
+        g.strokePath();
+
+        //    Front arm — shoulder to hand
+        g.lineStyle(armT, shirt, 0.9);
+        g.beginPath();
+        g.moveTo(shoulder.x, shoulder.y);
+        g.lineTo(hand.x, hand.y);
+        g.strokePath();
+        // Forearm (skin) from hand toward knee
+        g.lineStyle(armT * 0.8, skin, 1);
+        g.beginPath();
+        g.moveTo(hand.x, hand.y);
+        g.lineTo(shin.x, shin.y);
+        g.strokePath();
+        // Hand circle
         g.fillStyle(skin, 1);
-        g.fillCircle(faceDir.x, faceDir.y, headR * 0.7);
+        g.fillCircle(hand.x, hand.y, r * 0.07);
+
+        // 7. HEAD — tucked down between knees and feet
+        const headR = r * 0.22;
+        // Back of head (hair)
+        g.fillStyle(hair, 1);
+        g.fillCircle(headPos.x, headPos.y, headR);
+        // Face — slightly visible, turned inward
+        const facePos = rot(r*0.18, -r*0.44);
+        g.fillStyle(skin, 1);
+        g.fillCircle(facePos.x, facePos.y, headR * 0.65);
+        // Neck connection
+        g.lineStyle(headR * 0.6, skin, 1);
+        g.beginPath();
+        g.moveTo(headPos.x, headPos.y);
+        g.lineTo(neck.x, neck.y);
+        g.strokePath();
     }
 
     // ================================================================
