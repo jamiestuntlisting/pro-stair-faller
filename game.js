@@ -13,7 +13,7 @@ const CONFIG = {
     // World — much bigger scale for realistic proportions
     STAIR_START_X: 300,
     STAIR_START_Y: 200,
-    STEP_WIDTH: 80,         // tread depth in pixels (~28cm real)
+    STEP_WIDTH: 40,         // tread depth in pixels — half size for realistic scale
 
     // Physics (tuned for larger world)
     METER_OSCILLATION_SPEED: 3.5,
@@ -89,23 +89,23 @@ const LOCATIONS = [
 ];
 const LEVELS = [
     // L1-2: Tutorial — very few stairs
-    { name: 'Baby Steps', angleDeg: 30, numSteps: 2, flatLength: 600, markOffset: 300 },
-    { name: 'Getting Started', angleDeg: 32, numSteps: 5, flatLength: 800, markOffset: 400 },
+    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400 },
     // L3-4: Short staircases
-    { name: 'The Basics', angleDeg: 35, numSteps: 8, flatLength: 1000, markOffset: 500 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 10, flatLength: 1000, markOffset: 500 },
+    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500 },
     // L5-6: Medium — stairs get longer
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 14, flatLength: 1200, markOffset: 650 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 12, flatLength: 1400, markOffset: 750 },
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750 },
     // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 20, flatLength: 1200, markOffset: 620 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 16, flatLength: 1600, markOffset: 900 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900 },
     // L9-10: Very long
-    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 28, flatLength: 1100, markOffset: 500 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 30, flatLength: 1800, markOffset: 1000 },
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000 },
     // L11-12: Extreme
-    { name: 'Nosedive', angleDeg: 52, numSteps: 24, flatLength: 1700, markOffset: 950 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 40, flatLength: 2000, markOffset: 1100 },
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100 },
 ];
 
 function buildLevel(levelDef) {
@@ -395,25 +395,40 @@ class PlayScene extends Phaser.Scene {
         // Set background color for this location
         this.cameras.main.setBackgroundColor(loc.bg);
 
-        // ---- Stair structure underneath (dark fill) ----
-        g.fillStyle(loc.wall, 1);
+        // ---- Solid triangle fill under the stairs ----
+        // Triangle: top-left corner → stair steps → bottom-right → floor level back to start
+        const wallDark = ((loc.wall >> 16 & 0xff) * 0.7 | 0) << 16 | ((loc.wall >> 8 & 0xff) * 0.7 | 0) << 8 | ((loc.wall & 0xff) * 0.7 | 0);
+        g.fillStyle(wallDark, 1);
         g.beginPath();
         g.moveTo(ld.startX, ld.startY);
+        // Follow stair steps down
         for (const s of steps) {
             g.lineTo(s.x, s.y);
             g.lineTo(s.x, s.y + s.h);
             g.lineTo(s.x + s.w, s.y + s.h);
         }
+        // Down to floor + depth
         g.lineTo(ld.endX, ld.endY + depth);
+        // Along the bottom
         g.lineTo(ld.startX, ld.endY + depth);
+        // Back up to start (this fills the full triangle)
         g.closePath();
         g.fillPath();
 
-        // Stair stringer (side beam visible)
-        g.lineStyle(3, loc.wall, 0.6);
+        // Solid wall face of the triangle (lighter shade)
+        g.fillStyle(loc.wall, 1);
         g.beginPath();
-        g.moveTo(ld.startX, ld.startY + depth * 0.3);
-        g.lineTo(ld.endX, ld.endY + depth * 0.3);
+        g.moveTo(ld.startX, ld.startY);
+        g.lineTo(ld.startX, ld.endY);  // straight down from top of stairs to floor
+        g.lineTo(ld.endX, ld.endY);     // along the floor to bottom of stairs
+        g.closePath();
+        g.fillPath();
+
+        // Stair stringer (diagonal beam)
+        g.lineStyle(3, loc.stair, 0.4);
+        g.beginPath();
+        g.moveTo(ld.startX + 5, ld.startY + 15);
+        g.lineTo(ld.endX - 5, ld.endY - 5);
         g.strokePath();
 
         // ---- Each step — tread and riser with concrete look ----
