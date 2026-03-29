@@ -642,11 +642,12 @@ class PlayScene extends Phaser.Scene {
                     g.fillStyle(0x1a1a1a, 1);
                     g.fillCircle(koX + H*0.26, cy - H*0.008, H*0.013);
                     g.fillCircle(koX + H*0.24, cy + H*0.015, H*0.013);
-                    // Blood pool spreading under the body
+                    // Blood pool spreading under the body — grows over time
                     if (settleT > 0) {
                         const bloodSpread = Math.min(settleT * 0.4, 1.0);
-                        const bloodW = H * 0.12 * bloodSpread;
-                        const bloodH = H * 0.04 * bloodSpread;
+                        const growFactor = 1.0 + Math.min(t * 0.15, 1.5);
+                        const bloodW = H * 0.12 * bloodSpread * growFactor;
+                        const bloodH = H * 0.04 * bloodSpread * growFactor;
                         g.fillStyle(0x8b0000, 0.6);
                         g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW, bloodH);
                         // Darker center
@@ -1518,16 +1519,16 @@ class PlayScene extends Phaser.Scene {
 
         // Body joint positions (rotate as unit)
         // Head is on the POSITIVE X side (forward/right) for a forward roll
-        const neck      = rot(-r*0.05, -r*0.52);  // top of back/neck area
-        const midBack   = rot(-r*0.48, -r*0.10);  // outer curve of back (LEFT = behind)
-        const lowBack   = rot(-r*0.35, r*0.32);   // lower back
-        const butt      = rot(-r*0.05, r*0.48);   // bottom
-        const knee      = rot(r*0.38, r*0.22);    // knees pulled up (RIGHT = front)
-        const shin      = rot(r*0.38, -r*0.15);   // shins going up
-        const foot      = rot(r*0.18, -r*0.42);   // feet near head
-        const headPos   = rot(r*0.08, -r*0.50);   // head tucked at top-front (RIGHT)
-        const shoulder  = rot(-r*0.30, -r*0.38);  // shoulder area (behind)
-        const hand      = rot(r*0.42, r*0.02);    // hands clasping shins (front)
+        const neck      = rot(-r*0.05, -r*0.45);  // top of back/neck area
+        const midBack   = rot(-r*0.42, -r*0.05);  // outer curve of back (LEFT = behind)
+        const lowBack   = rot(-r*0.30, r*0.28);   // lower back
+        const butt      = rot(-r*0.05, r*0.40);   // bottom
+        const knee      = rot(r*0.22, r*0.15);    // knees pulled up tight to chest
+        const shin      = rot(r*0.22, -r*0.10);   // shins tucked in close
+        const foot      = rot(r*0.10, -r*0.32);   // feet near head, compact
+        const headPos   = rot(r*0.05, -r*0.40);   // head tucked at top-front
+        const shoulder  = rot(-r*0.25, -r*0.32);  // shoulder area (behind)
+        const hand      = rot(r*0.25, r*0.02);    // hands clasping shins (front)
 
         // Limb thickness (proportional to radius)
         const backT = r * 0.38;  // back/torso is thickest
@@ -1878,7 +1879,8 @@ class PlayScene extends Phaser.Scene {
             this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
         }
         const failed = d.crashed || d.distFeet > 5;
-        const earned = failed ? 0 : (d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5)));
+        const baseEarned = failed ? 0 : (d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5)));
+        const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
         this.currency += earned;
         this.showingScore = false;
         this.time.delayedCall(CONFIG.THUMBS_UP_DURATION, () => {
@@ -1888,8 +1890,8 @@ class PlayScene extends Phaser.Scene {
             if (this.currentHealth <= 0) {
                 this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
-                const reason = d.crashed ? 'Crashed into the camera!' : `Too far from mark (${d.distFeet.toFixed(1)}ft > 5ft)`;
-                this.promptText.setText(`${hs}\n${cs}\n\n${reason}\nPress SPACE to retry`).setVisible(true).setColor('#ffaa66');
+                const reason = d.crashed ? 'Crashed into the camera!' : `${d.distFeet.toFixed(1)} ft from mark... going again!`;
+                this.promptText.setText(`${hs}\n${cs}\n\n${reason}\nPress SPACE to retry`).setVisible(true).setColor(d.crashed ? '#ffaa66' : '#cccccc');
             } else {
                 this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true).setColor('#aaaacc');
             }
