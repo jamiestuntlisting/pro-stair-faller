@@ -1518,23 +1518,23 @@ class PlayScene extends Phaser.Scene {
         // NO filled circles for the body — only body-part lines.
 
         // Body joint positions (rotate as unit)
-        // Head is on the POSITIVE X side (forward/right) for a forward roll
-        const neck      = rot(-r*0.05, -r*0.45);  // top of back/neck area
-        const midBack   = rot(-r*0.42, -r*0.05);  // outer curve of back (LEFT = behind)
-        const lowBack   = rot(-r*0.30, r*0.28);   // lower back
-        const butt      = rot(-r*0.05, r*0.40);   // bottom
-        const knee      = rot(r*0.22, r*0.15);    // knees pulled up tight to chest
-        const shin      = rot(r*0.22, -r*0.10);   // shins tucked in close
-        const foot      = rot(r*0.10, -r*0.32);   // feet near head, compact
-        const headPos   = rot(r*0.05, -r*0.40);   // head tucked at top-front
-        const shoulder  = rot(-r*0.25, -r*0.32);  // shoulder area (behind)
-        const hand      = rot(r*0.25, r*0.02);    // hands clasping shins (front)
+        // KIDNEY BEAN shape: back is the wide outer arc, front is tight/closed
+        const neck      = rot(-r*0.10, -r*0.42);  // top of spine
+        const midBack   = rot(-r*0.45, 0);         // widest point of back curve
+        const lowBack   = rot(-r*0.30, r*0.30);   // lower back
+        const butt      = rot(-r*0.05, r*0.42);   // bottom
+        const knee      = rot(r*0.08, r*0.08);    // knees tight against chest
+        const shin      = rot(r*0.10, -r*0.12);   // shins tucked very close
+        const foot      = rot(r*0.02, -r*0.30);   // feet near head
+        const headPos   = rot(r*0.02, -r*0.38);   // head right at top, barely forward
+        const shoulder  = rot(-r*0.28, -r*0.30);  // upper back
+        const hand      = rot(r*0.12, -r*0.02);   // hands right at shins
 
-        // Limb thickness (proportional to radius)
-        const backT = r * 0.38;  // back/torso is thickest
-        const thighT = r * 0.28; // thighs
-        const shinT = r * 0.20;  // shins
-        const armT = r * 0.14;   // arms
+        // Limb thickness — thick enough to overlap and fill gaps
+        const backT = r * 0.44;  // back/torso is thickest
+        const thighT = r * 0.32; // thighs
+        const shinT = r * 0.24;  // shins
+        const armT = r * 0.16;   // arms
 
         // --- DRAW BACK TO FRONT ---
 
@@ -1890,8 +1890,11 @@ class PlayScene extends Phaser.Scene {
             if (this.currentHealth <= 0) {
                 this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
-                const reason = d.crashed ? 'Crashed into the camera!' : `${d.distFeet.toFixed(1)} ft from mark... going again!`;
-                this.promptText.setText(`${hs}\n${cs}\n\n${reason}\nPress SPACE to retry`).setVisible(true).setColor(d.crashed ? '#ffaa66' : '#cccccc');
+                if (d.crashed) {
+                    this.promptText.setText(`${hs}\n${cs}\n\nCrashed into the camera!\nPress SPACE to retry`).setVisible(true).setColor('#ffaa66');
+                } else {
+                    this.promptText.setText(`${d.distFeet.toFixed(1)}ft from mark... going again!\n\nPress SPACE to retry`).setVisible(true).setColor('#cccccc');
+                }
             } else {
                 this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true).setColor('#aaaacc');
             }
