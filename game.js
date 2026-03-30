@@ -275,15 +275,27 @@ class PlayScene extends Phaser.Scene {
         this.bounceTime = 0;
 
         // Manual update loop — Phaser 3.90 doesn't call update() reliably
+        // Guard: only one rAF loop, and prevent double-updates per frame
+        this._rafId = null;
+        this._lastFrame = 0; // frame counter to prevent double-calling
         const scene = this;
         let _lt = performance.now();
-        (function _loop() {
+        function _loop() {
+            if (!scene.sys || !scene.sys.settings || scene.sys.settings.status !== 5) return; // scene no longer running
             const now = performance.now();
             const d = now - _lt;
             _lt = now;
-            try { scene.update(now, Math.min(d, 33)); } catch(e) {}
-            requestAnimationFrame(_loop);
-        })();
+            if (d > 0 && d < 100) {
+                try { scene.update(now, Math.min(d, 33)); } catch(e) {}
+            }
+            scene._rafId = requestAnimationFrame(_loop);
+        }
+        this._rafId = requestAnimationFrame(_loop);
+
+        // Clean up rAF on scene shutdown to prevent stacking loops
+        this.events.on('shutdown', () => {
+            if (scene._rafId) { cancelAnimationFrame(scene._rafId); scene._rafId = null; }
+        });
     }
 
     handleAction() {
@@ -1674,6 +1686,10 @@ class PlayScene extends Phaser.Scene {
     // GAME LOOP
     // ================================================================
     update(time, delta) {
+        // Prevent double-updates in same frame (rAF + Phaser both calling)
+        const frame = Math.round(time);
+        if (frame === this._lastFrame) return;
+        this._lastFrame = frame;
         const dt = Math.min(delta, 33) / 1000;
         switch (this.playerState) {
             case 'idle': this.updateIdle(time, dt); break;
