@@ -1993,7 +1993,7 @@ class PlayScene extends Phaser.Scene {
         const d = this.scoreData;
         const failed = d.crashed || d.distFeet > 5.1;
         // Higher levels pay much more — low early, high late
-        const levelPay = 50 + this.currentLevel * 40; // L1=$50, L3=$130, L5=$250, L8=$370, L12=$530
+        const levelPay = 5 + this.currentLevel * 15 + this.currentLevel * this.currentLevel * 3; // L1=$5, L2=$23, L3=$47, L5=$110, L8=$227, L12=$461
         const baseEarned = failed ? 0 : (d.isPerfect ? levelPay : Math.max(0, Math.round(levelPay - d.distFeet * 2.5)));
         const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
         this.currency += earned;
