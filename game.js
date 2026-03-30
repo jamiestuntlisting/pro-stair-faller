@@ -2002,8 +2002,12 @@ class PlayScene extends Phaser.Scene {
         const failed = d.crashed || d.distFeet > 5.1;
         // Higher levels pay much more — low early, high late
         const levelPay = 5 + this.currentLevel * 15 + this.currentLevel * this.currentLevel * 3; // L1=$5, L2=$23, L3=$47, L5=$110, L8=$227, L12=$461
-        const baseEarned = failed ? 0 : (d.isPerfect ? levelPay : Math.max(0, Math.round(levelPay - d.distFeet * 2.5)));
-        const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
+        let baseEarned = failed ? 0 : (d.isPerfect ? levelPay : Math.max(0, Math.round(levelPay - d.distFeet * 2.5)));
+        // Any successful completion earns at least $2 (enough for Newspaper & Tape)
+        if (!failed && baseEarned < 2) baseEarned = 2;
+        let earned = d.isPerfect ? baseEarned * 2 : baseEarned;
+        // L1 caps at $9
+        if (this.currentLevel === 0) earned = Math.min(earned, 9);
         this.currency += earned;
         this.showingScore = false;
         // Delay ALL text until after the lying-still beat
