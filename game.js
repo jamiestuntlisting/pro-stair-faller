@@ -496,17 +496,17 @@ class PlayScene extends Phaser.Scene {
         const floorY = ld.endY;
         // Floor surface
         g.fillStyle(loc.floor, 1);
-        g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 500, 8);
+        g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 1200, 8);
 
         // Floor body
         const floorDark = ((loc.floor >> 16 & 0xff) * 0.8 | 0) << 16 | ((loc.floor >> 8 & 0xff) * 0.8 | 0) << 8 | ((loc.floor & 0xff) * 0.8 | 0);
         g.fillStyle(floorDark, 1);
-        g.fillRect(ld.endX, floorY + 8, ld.flatEndX - ld.endX + 500, depth);
+        g.fillRect(ld.endX, floorY + 8, ld.flatEndX - ld.endX + 1200, depth);
 
         // Floor surface highlight
         const floorLight = ((loc.floor >> 16 & 0xff) * 1.15 | 0) << 16 | ((loc.floor >> 8 & 0xff) * 1.15 | 0) << 8 | ((loc.floor & 0xff) * 1.15 | 0);
         g.fillStyle(Math.min(floorLight, 0xffffff), 1);
-        g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 500, 2);
+        g.fillRect(ld.endX, floorY, ld.flatEndX - ld.endX + 1200, 2);
 
         // Floor texture — subtle concrete grain
         g.lineStyle(1, 0x4e4e5e, 0.15);
@@ -662,12 +662,11 @@ class PlayScene extends Phaser.Scene {
                     g.fillStyle(0x1a1a1a, 1);
                     g.fillCircle(koX + H*0.26, cy - H*0.008, H*0.013);
                     g.fillCircle(koX + H*0.24, cy + H*0.015, H*0.013);
-                    // Blood pool spreading under the body — grows over time
+                    // Blood pool — starts large, grows to 3x
                     if (settleT > 0) {
-                        const bloodSpread = Math.min(settleT * 0.4, 1.0);
-                        const growFactor = 1.0 + Math.min(t * 0.15, 1.5);
-                        const bloodW = H * 0.12 * bloodSpread * growFactor;
-                        const bloodH = H * 0.04 * bloodSpread * growFactor;
+                        const growFactor = 1.0 + Math.min(t * 0.25, 2.0); // grows up to 3x
+                        const bloodW = H * 0.12 * growFactor;
+                        const bloodH = H * 0.04 * growFactor;
                         g.fillStyle(0x8b0000, 0.6);
                         g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW, bloodH);
                         // Darker center
@@ -900,9 +899,9 @@ class PlayScene extends Phaser.Scene {
         // === LENS BARREL (pointing LEFT toward player) ===
         const lensLen = 55*S;
         const lx = bx - Math.cos(tilt) * (bw/2 + lensLen);
-        const ly = by + Math.sin(tilt) * (bw/2 + lensLen);
+        const ly = Math.min(by + Math.sin(tilt) * (bw/2 + lensLen), cy - 5); // clamp above ground
         const lmx = bx - Math.cos(tilt) * bw/2;
-        const lmy = by + Math.sin(tilt) * bw/2;
+        const lmy = Math.min(by + Math.sin(tilt) * bw/2, cy - 5);
         // Lens barrel (dark cylinder)
         g.lineStyle(28*S, 0x222228, 1);
         g.beginPath(); g.moveTo(lmx, lmy); g.lineTo(lx, ly); g.strokePath();
@@ -1870,7 +1869,7 @@ class PlayScene extends Phaser.Scene {
                 this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
                 if (d.crashed) {
-                    this.promptText.setText(`${hs}\n${cs}\n\nCrashed into the camera!\nPress SPACE to retry`).setVisible(true).setColor('#ffaa66');
+                    this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#ffaa66');
                 } else {
                     this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
