@@ -92,18 +92,18 @@ const LEVELS = [
     // L3-4: Short staircases
     { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.74, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
-    // L5-6: Medium
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.90, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.03, yellowExtra: 0.04 },
+    // L5-6: Medium — wider green zones for easier play
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.90, greenW: 0.05, yellowExtra: 0.05 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.05, yellowExtra: 0.05 },
     // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.92, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.89, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
     // L9-10: Very long
-    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.02, yellowExtra: 0.03 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.02, yellowExtra: 0.03 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.02, yellowExtra: 0.02 },
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.03, yellowExtra: 0.04 },
 ];
 
 function buildLevel(levelDef) {
@@ -1868,8 +1868,8 @@ class PlayScene extends Phaser.Scene {
         this.meterTime += dt;
         // Oscillate between MIN_POWER_FLOOR and 1.0
         // Speed increases with level: L1=2.0 (slow), L12=5.0 (fast)
-        // L1=1.2 (very slow), L3=1.8, L6=3.0, L12=5.0
-        const levelSpeedMult = 1.2 + (this.currentLevel / 11) * 3.8;
+        // L1=1.0 (very slow), L4=1.6, L8=2.5, L12=3.5
+        const levelSpeedMult = 1.0 + (this.currentLevel / 11) * 2.5;
         const floor = CONFIG.MIN_POWER_FLOOR;
         const raw = 0.5 + 0.5 * Math.sin(this.meterTime * levelSpeedMult);
         this.meterValue = floor + raw * (1 - floor);
@@ -2258,20 +2258,21 @@ class StoreScene extends Phaser.Scene {
 
         // Header — fixed
         if (this.restWeek) {
-            this.add.text(CONFIG.WIDTH/2, 30, "END OF THE WEEK — TIME TO REST UP!", {
-                fontSize: '28px', fontFamily: 'Georgia, serif', color: '#66dd88',
-                stroke: '#000000', strokeThickness: 4,
+            // Full-width rest banner
+            this.add.rectangle(CONFIG.WIDTH/2, 28, CONFIG.WIDTH, 56, 0x1a3a1a);
+            this.add.rectangle(CONFIG.WIDTH/2, 28, CONFIG.WIDTH - 4, 52, 0x224422).setStrokeStyle(2, 0x44aa44);
+            this.add.text(CONFIG.WIDTH/2, 18, "END OF THE WEEK", {
+                fontSize: '24px', fontFamily: 'Georgia, serif', color: '#88ffaa', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 3,
             }).setOrigin(0.5);
-            this.add.text(CONFIG.WIDTH/2, 58, 'PAD STORE', {
-                fontSize: '32px', fontFamily: 'Georgia, serif', color: '#ccccee',
-                stroke: '#000000', strokeThickness: 4,
-            }).setOrigin(0.5);
-        } else {
-            this.add.text(CONFIG.WIDTH/2, 30, 'PAD STORE', {
-                fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
-                stroke: '#000000', strokeThickness: 5,
+            this.add.text(CONFIG.WIDTH/2, 40, "Your health has been restored. Good luck this week!", {
+                fontSize: '16px', fontFamily: 'Arial', color: '#aaddbb',
             }).setOrigin(0.5);
         }
+        this.add.text(CONFIG.WIDTH/2, this.restWeek ? 72 : 30, 'PAD STORE', {
+            fontSize: this.restWeek ? '30px' : '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
+            stroke: '#000000', strokeThickness: this.restWeek ? 3 : 5,
+        }).setOrigin(0.5);
         this.add.text(CONFIG.WIDTH/2, 80, `Cash: $${this.currency}  |  Health: ${Math.round(this.health)}/${CONFIG.BASE_HEALTH}  |  Protection: ${this.protection}`, {
             fontSize: '22px', fontFamily: 'Arial', color: '#8888aa',
         }).setOrigin(0.5);
