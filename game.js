@@ -215,7 +215,7 @@ class PlayScene extends Phaser.Scene {
         const worldW = this.levelData.flatEndX + 600;
         const worldH = this.levelData.endY + 600;
         this.cameras.main.setBounds(-500, -600, worldW + 1000, worldH + 1200);
-        this.cameras.main.scrollX = SEGMENTS[0].startX - 200;
+        this.cameras.main.scrollX = SEGMENTS[0].startX - 500;
         this.cameras.main.scrollY = SEGMENTS[0].startY - 300;
         this.camTargetX = this.cameras.main.scrollX;
         this.camTargetY = this.cameras.main.scrollY;
