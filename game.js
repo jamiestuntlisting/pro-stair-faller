@@ -1543,71 +1543,54 @@ class PlayScene extends Phaser.Scene {
         const elbowPos    = rot(r*0.10, r*0.05);     // elbow near knee
         const handPos     = rot(r*0.28, -r*0.08);    // hands clasping shins
 
-        // --- 1. BACK — smooth rounded arc using many overlapping circles ---
+        // --- 1. BACK — 5 smaller circles forming a rounded arc, pulled behind ---
         g.fillStyle(shirt, 1);
-        // Dense arc from shoulder area, around the outside, down to hip
-        for (let i = 0; i <= 8; i++) {
-            const t = i / 8;  // 0=top, 1=bottom
-            const angle = -0.45 + t * 0.90;  // arc from top-left to bottom
-            const cx = -r * 0.48 * Math.cos(angle * Math.PI);
-            const cy = -r * 0.50 + t * r * 0.90;
-            const p = rot(cx, cy);
-            const rad = r * 0.28 + Math.sin(t * Math.PI) * r * 0.08; // fatter in middle
-            g.fillCircle(p.x, p.y, rad);
+        for (let i = 0; i <= 4; i++) {
+            const t = i / 4;
+            const bx = rot(-r*0.35, -r*0.40 + t * r * 0.80);
+            const rad = r * 0.22 + Math.sin(t * Math.PI) * r * 0.06;
+            g.fillCircle(bx.x, bx.y, rad);
         }
-        // Back shadow — subtle darker edge
-        g.fillStyle(shirtDark, 0.2);
-        for (let i = 1; i <= 6; i++) {
-            const t = i / 7;
-            const cx = -r * 0.56 * Math.cos(t * Math.PI * 0.6);
-            const cy = -r * 0.40 + t * r * 0.70;
-            const p = rot(cx, cy);
-            g.fillCircle(p.x, p.y, r * 0.16);
-        }
+        // Subtle shadow on outer edge
+        g.fillStyle(shirtDark, 0.15);
+        const shadowP = rot(-r*0.45, 0);
+        g.fillCircle(shadowP.x, shadowP.y, r * 0.15);
 
-        // --- 2. THIGHS — clearly visible, from hip forward to knees ---
+        // --- 2. THIGHS — hip to knees ---
         g.lineStyle(r * 0.18, pants, 1);
         g.beginPath(); g.moveTo(hipPos.x, hipPos.y); g.lineTo(kneePos.x, kneePos.y); g.strokePath();
-        // Knee circle
         g.fillStyle(pants, 1);
         g.fillCircle(kneePos.x, kneePos.y, r * 0.12);
 
-        // --- 3. SHINS — knee up to feet, clearly separate ---
+        // --- 3. SHINS — knee to feet ---
         g.lineStyle(r * 0.14, pants, 1);
         g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(shinEnd.x, shinEnd.y); g.strokePath();
         g.beginPath(); g.moveTo(shinEnd.x, shinEnd.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
 
-        // --- 4. FEET/SHOES — clearly visible ---
+        // --- 4. SHOES ---
         g.fillStyle(shoe, 1);
         g.fillCircle(footPos.x, footPos.y, r * 0.10);
-        // Shoe detail
-        g.fillStyle(0x333333, 1);
-        const soleDir = rot(r*0.22, -r*0.40);
-        g.fillCircle(soleDir.x, soleDir.y, r * 0.06);
 
-        // --- 5. UPPER ARM — from shoulder down to elbow ---
-        g.lineStyle(r * 0.12, shirt, 1);
-        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(elbowPos.x, elbowPos.y); g.strokePath();
-
-        // --- 6. FOREARM — elbow to hand (skin visible) ---
-        g.lineStyle(r * 0.10, skin, 1);
-        g.beginPath(); g.moveTo(elbowPos.x, elbowPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
-        // Hand circle
-        g.fillStyle(skin, 1);
-        g.fillCircle(handPos.x, handPos.y, r * 0.08);
-
-        // --- 7. HEAD — tucked at top ---
+        // --- 5. HEAD — tucked at top ---
         const headR = r * 0.22;
-        // Neck
         g.lineStyle(r * 0.10, skin, 1);
         g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(headPos.x, headPos.y); g.strokePath();
-        // Hair
         g.fillStyle(hair, 1);
         g.fillCircle(headPos.x, headPos.y, headR);
-        // Face (tucked down, partially visible)
         const facePos = rot(r*0.20, -r*0.36);
         g.fillStyle(skin, 1);
         g.fillCircle(facePos.x, facePos.y, headR * 0.6);
+
+        // --- 6. ARMS — drawn LAST so they appear IN FRONT of body ---
+        // Upper arm (sleeve)
+        g.lineStyle(r * 0.12, shirt, 1);
+        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(elbowPos.x, elbowPos.y); g.strokePath();
+        // Forearm (skin)
+        g.lineStyle(r * 0.10, skin, 1);
+        g.beginPath(); g.moveTo(elbowPos.x, elbowPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
+        // Hand
+        g.fillStyle(skin, 1);
+        g.fillCircle(handPos.x, handPos.y, r * 0.08);
     }
 
     // ================================================================
