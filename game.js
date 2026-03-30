@@ -1303,46 +1303,83 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x000000, 0.18);
         g.fillEllipse(x, y + 4, H*0.14, H*0.02);
 
-        if (!showThumb) {
-            // === LYING FLAT — face down, motionless beat ===
+        // Animation phases: 0-0 = lying, then thumbProg 0-0.4 = getting up, 0.4-1 = sitting + arm
+        const getUpProg = showThumb ? Math.min(thumbProg / 0.4, 1) : 0; // 0=flat, 1=sitting
+        const armProg = showThumb ? Math.max((thumbProg - 0.5) / 0.5, 0) : 0;
+
+        if (!showThumb || getUpProg < 1) {
+            // === LYING or GETTING UP — interpolate from flat to sitting ===
+            const p = getUpProg; // 0=flat on ground, 1=fully sitting
             const by = y - H*0.04;
 
-            // Legs
+            // Torso angle: 0=flat (horizontal), 1=sitting (leaning back ~75°)
+            const torsoAngle = p * -1.2; // radians, negative = leaning back from horizontal
+            const torsoLen = H * 0.22;
+            const hipX = x - H*0.04;
+            const hipY = by;
+            const shoulderX = hipX + Math.cos(torsoAngle) * torsoLen;
+            const shoulderY = hipY + Math.sin(torsoAngle) * torsoLen;
+
+            // Legs — from splayed flat to bent sitting
+            const legEndX = x - H*0.30 + p * H*0.50; // feet move from left to right
+            const legEndY = by + 3 - p * H*0.01;
             g.lineStyle(H*0.04, pants, 1);
-            g.beginPath();
-            g.moveTo(x - H*0.05, by); g.lineTo(x - H*0.30, by + 3);
-            g.strokePath();
+            g.beginPath(); g.moveTo(hipX, hipY); g.lineTo(legEndX, legEndY); g.strokePath();
             g.lineStyle(H*0.035, pantsDark, 1);
-            g.beginPath();
-            g.moveTo(x - H*0.05, by + H*0.035); g.lineTo(x - H*0.28, by + H*0.04);
-            g.strokePath();
+            g.beginPath(); g.moveTo(hipX, hipY + H*0.03); g.lineTo(legEndX - H*0.02, legEndY + H*0.03); g.strokePath();
             // Shoes
             g.fillStyle(shoe, 1);
-            g.fillRect(x - H*0.33, by - H*0.01, H*0.05, H*0.035);
-            g.fillRect(x - H*0.31, by + H*0.025, H*0.05, H*0.035);
+            g.fillRect(legEndX - H*0.03, legEndY - H*0.01, H*0.05, H*0.03);
+            g.fillRect(legEndX - H*0.05, legEndY + H*0.02, H*0.05, H*0.03);
 
-            // Torso
+            // Torso — rotates from horizontal to upright
             g.fillStyle(shirt, 1);
-            g.fillRect(x - H*0.06, by - H*0.07, H*0.20, H*0.11);
-            g.fillStyle(shirtDark, 1);
-            g.fillRect(x - H*0.06, by - H*0.02, H*0.20, H*0.04);
+            g.lineStyle(H*0.11, shirt, 1);
+            g.beginPath(); g.moveTo(hipX, hipY); g.lineTo(shoulderX, shoulderY); g.strokePath();
 
-            // Arms splayed
+            // Arms — from splayed to resting at sides
+            const armRestX = shoulderX + (1 - p) * H*0.08 - p * H*0.06;
+            const armRestY = shoulderY - (1 - p) * H*0.04 + p * H*0.12;
             g.lineStyle(H*0.025, skin, 1);
-            g.beginPath();
-            g.moveTo(x + H*0.10, by - H*0.04); g.lineTo(x + H*0.18, by - H*0.08);
-            g.moveTo(x - H*0.04, by - H*0.04); g.lineTo(x - H*0.10, by + H*0.03);
-            g.strokePath();
+            g.beginPath(); g.moveTo(shoulderX, shoulderY); g.lineTo(armRestX, armRestY); g.strokePath();
+            // Support arm (propping up during get-up)
+            if (p > 0.1 && p < 0.9) {
+                g.lineStyle(H*0.025, skin, 1);
+                g.beginPath();
+                g.moveTo(shoulderX - H*0.06, shoulderY);
+                g.lineTo(shoulderX - H*0.12, by + H*0.01);
+                g.strokePath();
+            }
 
-            // Head (face down)
+            // Neck + Head
             const headR = H * 0.05;
+            const neckX = shoulderX + Math.cos(torsoAngle - 0.2) * H*0.06;
+            const neckY = shoulderY + Math.sin(torsoAngle - 0.2) * H*0.06;
+            g.fillStyle(skin, 1);
+            g.fillRect(Math.min(shoulderX, neckX), Math.min(shoulderY, neckY) - H*0.01, H*0.03, H*0.05);
+            // Head
+            const headX = neckX + Math.cos(torsoAngle - 0.3) * H*0.04;
+            const headY = neckY + Math.sin(torsoAngle - 0.3) * H*0.04;
             g.fillStyle(hair, 1);
-            g.fillCircle(x + H*0.17, by - H*0.03, headR);
-            g.fillStyle(skin, 0.5);
-            g.fillCircle(x + H*0.18, by - H*0.01, headR*0.6);
+            g.fillCircle(headX, headY, headR);
+            g.fillStyle(skin, 1);
+            g.fillCircle(headX + headR*0.3, headY + headR*0.2, headR*0.82);
+            // Dazed expression
+            if (p < 0.5) {
+                // Eyes closed/dazed while getting up
+                g.fillStyle(skin, 0.7);
+                g.fillRect(headX - headR*0.4, headY - headR*0.05, headR*0.8, headR*0.12);
+            } else {
+                // Eyes opening
+                g.fillStyle(0xffffff, 1);
+                g.fillCircle(headX - headR*0.25, headY, headR*0.12);
+                g.fillCircle(headX + headR*0.25, headY, headR*0.12);
+                g.fillStyle(0x443322, 1);
+                g.fillCircle(headX - headR*0.22, headY, headR*0.06);
+                g.fillCircle(headX + headR*0.22, headY, headR*0.06);
+            }
         } else {
-            // === SITTING UP — thumbs up pose ===
-            const armProg = Math.max((thumbProg - 0.5) / 0.5, 0);
+            // === FULLY SITTING — thumbs up pose ===
             const by = y;
             const headR = H * 0.05;
 
@@ -1846,7 +1883,7 @@ class PlayScene extends Phaser.Scene {
             const hs = `Health: ${Math.round(this.currentHealth)}/${CONFIG.BASE_HEALTH}  (-${Math.round(d.healthCost)})`;
             const cs = earned > 0 ? `+$${earned}  (Total: $${this.currency})` : `Total: $${this.currency}`;
             if (this.currentHealth <= 0) {
-                this.promptText.setText(`${hs}\n\nRUN OVER — Reached Level ${this.currentLevel+1}\n\nPress SPACE to start new run`).setVisible(true).setColor('#ff6666');
+                this.promptText.setText(`${hs}\n\nYou're too beat up to continue.\nMade it to Level ${this.currentLevel+1}\n\nPress SPACE to start over`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
                 if (d.crashed) {
                     this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#ffaa66');
