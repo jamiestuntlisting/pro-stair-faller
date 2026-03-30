@@ -128,6 +128,8 @@ const LEVELS = [
     { name: 'The Abyss', angleDeg: 80, numSteps: 100, flatLength: 4000, markOffset: 2500, sweetSpot: 0.45, greenW: 0.02, yellowExtra: 0.02 },
     { name: 'Babel Tower', angleDeg: 35, numSteps: 300, flatLength: 3500, markOffset: 2200, sweetSpot: 0.95, greenW: 0.02, yellowExtra: 0.02 },
     { name: 'Freefall', angleDeg: 85, numSteps: 60, flatLength: 5000, markOffset: 3000, sweetSpot: 0.40, greenW: 0.02, yellowExtra: 0.02 },
+    // L21: The ultimate challenge
+    { name: 'Empire State Building', angleDeg: 35, numSteps: 1576, flatLength: 6000, markOffset: 4000, sweetSpot: 0.96, greenW: 0.01, yellowExtra: 0.02 },
 ];
 
 function buildLevel(levelDef) {
@@ -207,7 +209,7 @@ class PlayScene extends Phaser.Scene {
         this.playerGender = data.playerGender != null ? data.playerGender : (Math.random() < 0.5 ? 'male' : 'female');
 
         // Compute pad visuals from owned pads
-        this.padVisuals = { knees: 0, elbows: 0, hips: 0, back: 0, head: 0, full: false };
+        this.padVisuals = { knees: 0, elbows: 0, hips: 0, back: 0, head: 0, forearms: 0, shins: 0, butt: 0, full: false };
         for (const idx of this.ownedPads) {
             const pad = PADS[idx];
             if (!pad) continue;
@@ -379,7 +381,12 @@ class PlayScene extends Phaser.Scene {
                     passData.health = Math.min(CONFIG.BASE_HEALTH, passData.health + 40);
                     passData.restWeek = true;
                 }
-                this.scene.start('StoreScene', { ...passData, level: nextLevel });
+                if (this.ownedPads.length >= PADS.length) {
+                    // All pads owned — skip store, go directly to next level
+                    this.scene.start('PlayScene', { ...passData, level: nextLevel });
+                } else {
+                    this.scene.start('StoreScene', { ...passData, level: nextLevel });
+                }
             }
         }
     }
@@ -1288,145 +1295,158 @@ class PlayScene extends Phaser.Scene {
         const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
         const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const headR = H * 0.058;
-        const sw = H * 0.05;
 
-        // Shadow
+        // === READY STANCE — knees bent, arms out, facing right ===
+        // Body is ~10% lower due to bent knees
+        const crouch = H * 0.10;
+        // Slight torso rotation toward right (facing roll direction)
+        const lean = H * 0.02;
+
+        // Wider foot spread for athletic stance
+        const footSpreadL = H * 0.08;
+        const footSpreadR = H * 0.07;
+
+        // Shadow (wider due to stance)
         g.fillStyle(0x000000, 0.2);
-        g.fillEllipse(x, y + 4, H * 0.12, H * 0.02);
+        g.fillEllipse(x + lean, y + 4, H * 0.16, H * 0.02);
 
         // Shoes
         g.fillStyle(shoe, 1);
-        g.fillRect(x - sw - H*0.02, y - H*0.01, H*0.06, H*0.03);
-        g.fillRect(x + sw - H*0.04, y - H*0.01, H*0.06, H*0.03);
+        g.fillRect(x - footSpreadL - H*0.02, y - H*0.01, H*0.06, H*0.03);
+        g.fillRect(x + footSpreadR - H*0.02, y - H*0.01, H*0.06, H*0.03);
         // Shoe soles
         g.fillStyle(0x333333, 1);
-        g.fillRect(x - sw - H*0.02, y + H*0.015, H*0.06, H*0.008);
-        g.fillRect(x + sw - H*0.04, y + H*0.015, H*0.06, H*0.008);
+        g.fillRect(x - footSpreadL - H*0.02, y + H*0.015, H*0.06, H*0.008);
+        g.fillRect(x + footSpreadR - H*0.02, y + H*0.015, H*0.06, H*0.008);
 
-        // Legs — left (back)
+        // Legs — left (back) — bent knee angled outward
         g.lineStyle(H*0.038, pantsDark, 1);
         g.beginPath();
-        g.moveTo(x - H*0.02, y - H*0.42); g.lineTo(x - sw, y - H*0.21);
+        g.moveTo(x - H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3);
         g.strokePath();
         g.lineStyle(H*0.032, pantsDark, 1);
         g.beginPath();
-        g.moveTo(x - sw, y - H*0.21); g.lineTo(x - sw, y + 2);
+        g.moveTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x - footSpreadL, y + 2);
         g.strokePath();
-        // Legs — right (front)
+        // Legs — right (front) — bent knee angled outward
         g.lineStyle(H*0.038, pants, 1);
         g.beginPath();
-        g.moveTo(x + H*0.02, y - H*0.42); g.lineTo(x + sw, y - H*0.21);
+        g.moveTo(x + H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3);
         g.strokePath();
         g.lineStyle(H*0.032, pants, 1);
         g.beginPath();
-        g.moveTo(x + sw, y - H*0.21); g.lineTo(x + sw, y + 2);
+        g.moveTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x + footSpreadR, y + 2);
         g.strokePath();
 
         // Belt
         g.fillStyle(0x2a2222, 1);
-        g.fillRect(x - H*0.055, y - H*0.44, H*0.11, H*0.018);
+        g.fillRect(x - H*0.055 + lean, y - H*0.44 + crouch, H*0.11, H*0.018);
         // Belt buckle
         g.fillStyle(0x888877, 1);
-        g.fillRect(x - H*0.01, y - H*0.438, H*0.02, H*0.014);
+        g.fillRect(x - H*0.01 + lean, y - H*0.438 + crouch, H*0.02, H*0.014);
 
-        // Torso
+        // Torso — slightly rotated right
         g.fillStyle(shirt, 1);
-        g.fillRect(x - H*0.06, y - H*0.70, H*0.12, H*0.27);
+        g.fillRect(x - H*0.06 + lean, y - H*0.70 + crouch, H*0.12, H*0.27);
         // Torso shadow (right side)
         g.fillStyle(shirtDark, 0.4);
-        g.fillRect(x + H*0.02, y - H*0.70, H*0.04, H*0.27);
+        g.fillRect(x + H*0.02 + lean, y - H*0.70 + crouch, H*0.04, H*0.27);
         // Collar
         g.fillStyle(skin, 1);
         g.beginPath();
-        g.moveTo(x - H*0.035, y - H*0.70);
-        g.lineTo(x, y - H*0.66);
-        g.lineTo(x + H*0.035, y - H*0.70);
+        g.moveTo(x - H*0.035 + lean, y - H*0.70 + crouch);
+        g.lineTo(x + lean, y - H*0.66 + crouch);
+        g.lineTo(x + H*0.035 + lean, y - H*0.70 + crouch);
         g.closePath();
         g.fillPath();
 
         // Shoulders
         g.fillStyle(shirt, 1);
-        g.fillRect(x - H*0.09, y - H*0.70, H*0.18, H*0.035);
+        g.fillRect(x - H*0.09 + lean, y - H*0.70 + crouch, H*0.18, H*0.035);
         g.fillStyle(shirtDark, 0.3);
-        g.fillRect(x - H*0.09, y - H*0.67, H*0.18, H*0.01);
+        g.fillRect(x - H*0.09 + lean, y - H*0.67 + crouch, H*0.18, H*0.01);
 
-        // Arms — back arm first
+        // Arms out at ~45 degrees, forearms slightly forward
+        // Back arm (left) — upper arm out to left-back at 45deg
         g.lineStyle(H*0.028, shirtDark, 1);
         g.beginPath();
-        g.moveTo(x - H*0.09, y - H*0.68); g.lineTo(x - H*0.10, y - H*0.55);
+        g.moveTo(x - H*0.09 + lean, y - H*0.68 + crouch); g.lineTo(x - H*0.17, y - H*0.56 + crouch);
         g.strokePath();
+        // Forearm slightly forward
         g.lineStyle(H*0.022, skinDark, 1);
         g.beginPath();
-        g.moveTo(x - H*0.10, y - H*0.55); g.lineTo(x - H*0.08, y - H*0.44);
+        g.moveTo(x - H*0.17, y - H*0.56 + crouch); g.lineTo(x - H*0.13, y - H*0.46 + crouch);
         g.strokePath();
         g.fillStyle(skinDark, 1);
-        g.fillCircle(x - H*0.08, y - H*0.44, H*0.016);
-        // Arms — front arm
+        g.fillCircle(x - H*0.13, y - H*0.46 + crouch, H*0.016);
+
+        // Front arm (right) — upper arm out to right at 45deg
         g.lineStyle(H*0.03, shirt, 1);
         g.beginPath();
-        g.moveTo(x + H*0.09, y - H*0.68); g.lineTo(x + H*0.10, y - H*0.55);
+        g.moveTo(x + H*0.09 + lean, y - H*0.68 + crouch); g.lineTo(x + H*0.19 + lean, y - H*0.56 + crouch);
         g.strokePath();
+        // Forearm slightly forward
         g.lineStyle(H*0.024, skin, 1);
         g.beginPath();
-        g.moveTo(x + H*0.10, y - H*0.55); g.lineTo(x + H*0.08, y - H*0.44);
+        g.moveTo(x + H*0.19 + lean, y - H*0.56 + crouch); g.lineTo(x + H*0.16 + lean, y - H*0.46 + crouch);
         g.strokePath();
         g.fillStyle(skin, 1);
-        g.fillCircle(x + H*0.08, y - H*0.44, H*0.018);
+        g.fillCircle(x + H*0.16 + lean, y - H*0.46 + crouch, H*0.018);
 
         // Neck
         g.fillStyle(skin, 1);
-        g.fillRect(x - H*0.018, y - H*0.76, H*0.036, H*0.06);
+        g.fillRect(x - H*0.018 + lean, y - H*0.76 + crouch, H*0.036, H*0.06);
 
-        // Head
+        // Head — turned to look right
+        const headX = x + lean + H*0.01;
+        const headY = y - H*0.82 + crouch;
         g.fillStyle(skin, 1);
-        g.fillCircle(x, y - H*0.82, headR);
+        g.fillCircle(headX, headY, headR);
         // Hair
         const isFemale = this.playerGender === 'female';
         g.fillStyle(hair, 1);
-        g.fillCircle(x, y - H*0.85, headR * 0.92);
-        g.fillRect(x - headR, y - H*0.88, headR*2, headR*0.5);
+        g.fillCircle(headX, headY - H*0.03, headR * 0.92);
+        g.fillRect(headX - headR, headY - H*0.06, headR*2, headR*0.5);
         if (isFemale) {
-            // Longer hair sides
-            g.fillRect(x - headR*1.05, y - H*0.86, headR*0.3, headR*1.8);
-            g.fillRect(x + headR*0.75, y - H*0.86, headR*0.3, headR*1.8);
-            // Ponytail
+            g.fillRect(headX - headR*1.05, headY - H*0.04, headR*0.3, headR*1.8);
+            g.fillRect(headX + headR*0.75, headY - H*0.04, headR*0.3, headR*1.8);
             g.lineStyle(headR*0.4, hair, 1);
             g.beginPath();
-            g.moveTo(x, y - H*0.86);
-            g.lineTo(x - headR*0.3, y - H*0.75);
-            g.lineTo(x - headR*0.2, y - H*0.68);
+            g.moveTo(headX, headY - H*0.04);
+            g.lineTo(headX - headR*0.3, headY + H*0.07);
+            g.lineTo(headX - headR*0.2, headY + H*0.14);
             g.strokePath();
         }
         g.fillStyle(skin, 1);
-        g.fillCircle(x, y - H*0.80, headR * 0.85);
-        // Ear
+        g.fillCircle(headX, headY + H*0.02, headR * 0.85);
+        // Ear (right side — visible since head turned right)
         g.fillStyle(skinDark, 1);
-        g.fillCircle(x + headR*0.9, y - H*0.82, headR*0.2);
-        // Eyes (white + iris)
+        g.fillCircle(headX + headR*0.9, headY, headR*0.2);
+        // Eyes — shifted right (looking right)
         g.fillStyle(0xffffff, 1);
-        g.fillCircle(x - headR*0.32, y - H*0.82, headR*0.2);
-        g.fillCircle(x + headR*0.32, y - H*0.82, headR*0.2);
+        g.fillCircle(headX - headR*0.15, headY, headR*0.2);
+        g.fillCircle(headX + headR*0.42, headY, headR*0.2);
         g.fillStyle(0x443322, 1);
-        g.fillCircle(x - headR*0.28, y - H*0.82, headR*0.12);
-        g.fillCircle(x + headR*0.28, y - H*0.82, headR*0.12);
+        g.fillCircle(headX - headR*0.08, headY, headR*0.12);
+        g.fillCircle(headX + headR*0.48, headY, headR*0.12);
         g.fillStyle(0x111111, 1);
-        g.fillCircle(x - headR*0.28, y - H*0.82, headR*0.06);
-        g.fillCircle(x + headR*0.28, y - H*0.82, headR*0.06);
+        g.fillCircle(headX - headR*0.05, headY, headR*0.06);
+        g.fillCircle(headX + headR*0.50, headY, headR*0.06);
         // Eyebrows
         g.lineStyle(H*0.005, hair, 0.7);
         g.beginPath();
-        g.moveTo(x - headR*0.48, y - H*0.84); g.lineTo(x - headR*0.12, y - H*0.845);
-        g.moveTo(x + headR*0.12, y - H*0.845); g.lineTo(x + headR*0.48, y - H*0.84);
+        g.moveTo(headX - headR*0.32, headY - H*0.02); g.lineTo(headX + headR*0.02, headY - H*0.025);
+        g.moveTo(headX + headR*0.28, headY - H*0.025); g.lineTo(headX + headR*0.60, headY - H*0.02);
         g.strokePath();
-        // Nose (small line)
+        // Nose (pointing right)
         g.lineStyle(1, skinDark, 0.4);
         g.beginPath();
-        g.moveTo(x, y - H*0.81); g.lineTo(x + headR*0.08, y - H*0.80);
+        g.moveTo(headX + headR*0.15, headY + H*0.01); g.lineTo(headX + headR*0.25, headY + H*0.005);
         g.strokePath();
-        // Mouth
+        // Mouth — slight determined expression
         g.lineStyle(H*0.004, 0x995544, 0.6);
         g.beginPath();
-        g.moveTo(x - headR*0.22, y - H*0.79); g.lineTo(x + headR*0.22, y - H*0.79);
+        g.moveTo(headX - headR*0.05, headY + H*0.03); g.lineTo(headX + headR*0.30, headY + H*0.025);
         g.strokePath();
 
         // === PAD VISUALS — bumps under clothing ===
@@ -1439,30 +1459,30 @@ class PlayScene extends Phaser.Scene {
         };
 
         if (pv.full) {
-            // Full body suit — puffy outline around torso, arms, legs
+            // Full body suit — puffy outline around torso, arms, legs (adjusted for ready stance)
             const puffW = H * 0.018;
             g.fillStyle(padShade(shirt, 15), 0.45);
             // Puffy torso outline
-            g.fillRect(x - H*0.06 - puffW, y - H*0.70, H*0.12 + puffW*2, H*0.27);
+            g.fillRect(x - H*0.06 - puffW + lean, y - H*0.70 + crouch, H*0.12 + puffW*2, H*0.27);
             // Puffy shoulders
-            g.fillRect(x - H*0.09 - puffW, y - H*0.70, H*0.18 + puffW*2, H*0.035);
+            g.fillRect(x - H*0.09 - puffW + lean, y - H*0.70 + crouch, H*0.18 + puffW*2, H*0.035);
             // Puffy upper legs
             g.lineStyle(H*0.052, padShade(pants, 12), 0.35);
             g.beginPath();
-            g.moveTo(x - H*0.02, y - H*0.42); g.lineTo(x - sw, y - H*0.21);
-            g.moveTo(x + H*0.02, y - H*0.42); g.lineTo(x + sw, y - H*0.21);
+            g.moveTo(x - H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3);
+            g.moveTo(x + H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3);
             g.strokePath();
             // Puffy lower legs
             g.lineStyle(H*0.045, padShade(pants, 12), 0.35);
             g.beginPath();
-            g.moveTo(x - sw, y - H*0.21); g.lineTo(x - sw, y + 2);
-            g.moveTo(x + sw, y - H*0.21); g.lineTo(x + sw, y + 2);
+            g.moveTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x - footSpreadL, y + 2);
+            g.moveTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x + footSpreadR, y + 2);
             g.strokePath();
             // Puffy arms
             g.lineStyle(H*0.042, padShade(shirt, 15), 0.35);
             g.beginPath();
-            g.moveTo(x - H*0.09, y - H*0.68); g.lineTo(x - H*0.10, y - H*0.55);
-            g.moveTo(x + H*0.09, y - H*0.68); g.lineTo(x + H*0.10, y - H*0.55);
+            g.moveTo(x - H*0.09 + lean, y - H*0.68 + crouch); g.lineTo(x - H*0.17, y - H*0.56 + crouch);
+            g.moveTo(x + H*0.09 + lean, y - H*0.68 + crouch); g.lineTo(x + H*0.19 + lean, y - H*0.56 + crouch);
             g.strokePath();
         }
 
@@ -1473,9 +1493,9 @@ class PlayScene extends Phaser.Scene {
             const kneeColor = padShade(pants, 18);
             g.fillStyle(kneeColor, 0.7);
             // Left knee
-            g.fillCircle(x - sw, y - H*0.21, kneeBumpR);
+            g.fillCircle(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
             // Right knee
-            g.fillCircle(x + sw, y - H*0.21, kneeBumpR);
+            g.fillCircle(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
         }
 
         if (pv.elbows > 0) {
@@ -1485,9 +1505,9 @@ class PlayScene extends Phaser.Scene {
             const elbowColor = padShade(shirt, 20);
             g.fillStyle(elbowColor, 0.7);
             // Back elbow
-            g.fillCircle(x - H*0.10, y - H*0.55, elbowBumpR);
+            g.fillCircle(x - H*0.17, y - H*0.56 + crouch, elbowBumpR);
             // Front elbow
-            g.fillCircle(x + H*0.10, y - H*0.55, elbowBumpR);
+            g.fillCircle(x + H*0.19 + lean, y - H*0.56 + crouch, elbowBumpR);
         }
 
         if (pv.hips > 0) {
@@ -1497,9 +1517,9 @@ class PlayScene extends Phaser.Scene {
             const hipColor = padShade(pants, 14);
             g.fillStyle(hipColor, 0.55);
             // Left hip bulge
-            g.fillEllipse(x - H*0.06 - hipBumpW*0.3, y - H*0.43, hipBumpW, H*0.04);
+            g.fillEllipse(x - H*0.06 - hipBumpW*0.3 + lean, y - H*0.43 + crouch, hipBumpW, H*0.04);
             // Right hip bulge
-            g.fillEllipse(x + H*0.06 + hipBumpW*0.3, y - H*0.43, hipBumpW, H*0.04);
+            g.fillEllipse(x + H*0.06 + hipBumpW*0.3 + lean, y - H*0.43 + crouch, hipBumpW, H*0.04);
         }
 
         if (pv.back > 0) {
@@ -1509,8 +1529,39 @@ class PlayScene extends Phaser.Scene {
             const backBumpH = H * (0.08 + bb * 0.04);
             const backColor = padShade(shirt, 10);
             g.fillStyle(backColor, 0.6);
-            g.fillEllipse(x - H*0.08, y - H*0.58, backBumpW, backBumpH);
-            g.fillEllipse(x - H*0.07, y - H*0.52, backBumpW * 0.8, backBumpH * 0.7);
+            g.fillEllipse(x - H*0.08 + lean, y - H*0.58 + crouch, backBumpW, backBumpH);
+            g.fillEllipse(x - H*0.07 + lean, y - H*0.52 + crouch, backBumpW * 0.8, backBumpH * 0.7);
+        }
+
+        if (pv.forearms > 0) {
+            const fb = pv.forearms;
+            const fBumpR = H * (0.010 + fb * 0.007);
+            const fColor = padShade(skin, 15);
+            g.fillStyle(fColor, 0.6);
+            // Back forearm
+            g.fillEllipse(x - H*0.09, y - H*0.48 + crouch, fBumpR, fBumpR * 1.5);
+            // Front forearm
+            g.fillEllipse(x + H*0.11 + lean, y - H*0.48 + crouch, fBumpR, fBumpR * 1.5);
+        }
+
+        if (pv.shins > 0) {
+            const sb = pv.shins;
+            const sBumpR = H * (0.008 + sb * 0.006);
+            const sColor = padShade(pants, 16);
+            g.fillStyle(sColor, 0.65);
+            // Left shin
+            g.fillEllipse(x - footSpreadL, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
+            // Right shin
+            g.fillEllipse(x + footSpreadR, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
+        }
+
+        if (pv.butt > 0) {
+            const bb = pv.butt;
+            const buttBumpW = H * (0.015 + bb * 0.010);
+            const buttColor = padShade(pants, 12);
+            g.fillStyle(buttColor, 0.55);
+            g.fillEllipse(x - H*0.03 + lean, y - H*0.38 + crouch, buttBumpW, H*0.04 + bb * H*0.01);
+            g.fillEllipse(x + H*0.03 + lean, y - H*0.38 + crouch, buttBumpW, H*0.04 + bb * H*0.01);
         }
     }
 
@@ -2000,8 +2051,8 @@ class PlayScene extends Phaser.Scene {
         const raw = 0.5 + 0.5 * Math.sin(this.meterTime * levelSpeedMult);
         this.meterValue = floor + raw * (1 - floor);
         this.bounceTime += dt;
-        const by = Math.sin(this.bounceTime * 3.5) * 3;
-        this.drawPlayer(SEGMENTS[0].startX, SEGMENTS[0].startY + by - 2, 0);
+        const bx = Math.sin(this.bounceTime * 2.5) * 4;
+        this.drawPlayer(SEGMENTS[0].startX + bx, SEGMENTS[0].startY - 2, 0);
     }
 
     updateRolling(time, dt) {
@@ -2030,9 +2081,14 @@ class PlayScene extends Phaser.Scene {
         }
 
         // Track tuck state for animation: -1=opening up (brake), 0=normal, 1=tucking tight (boost)
-        this.rollTuck = 0;
         if (this.cursors.right.isDown || touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; this.rollTuck = 1; }
         else if (this.cursors.left.isDown || touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; this.rollTuck = -1; }
+        else {
+            // Natural tuck based on acceleration — tighter on steep slopes, open when decelerating
+            const netAccel = gravity - friction;
+            const naturalTuck = netAccel > 0 ? 0.3 : -0.3;
+            this.rollTuck = (this.rollTuck || 0) * 0.9 + naturalTuck * 0.1;
+        }
 
         this.playerVelocity = Math.max(0, this.playerVelocity + (gravity - friction + ca) * dt);
         this.playerEnergy = Math.max(0, this.playerEnergy - CONFIG.MAX_ENERGY_DRAIN_RATE * this.playerMaxEnergy * (1 - sinA * CONFIG.SLOPE_DRAIN_REDUCTION) * edm * dt);
@@ -2363,6 +2419,9 @@ const PADS = [
     // Back & Core
     { name: 'D3O Hip Pads', cost: 75, protection: 6, minLevel: 4, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.', bulk: 1, location: 'hips' },
     { name: 'Hard Shell Knee', cost: 120, protection: 8, minLevel: 5, category: 'Knees & Elbows', desc: 'Serious knee protection.', bulk: 2, location: 'knees' },
+    { name: 'Forearm Guards', cost: 90, protection: 5, minLevel: 5, category: 'Arms & Legs', desc: 'Makes your forearms bulky.', bulk: 2, location: 'forearms' },
+    { name: 'Shin Guards', cost: 80, protection: 5, minLevel: 4, category: 'Arms & Legs', desc: 'Soccer-style shin protection.', bulk: 2, location: 'shins' },
+    { name: 'Padded Shorts', cost: 100, protection: 6, minLevel: 6, category: 'Back & Core', desc: 'Extra cushion for the pushin.', bulk: 2, location: 'butt' },
     { name: 'Spine Protector', cost: 200, protection: 12, minLevel: 7, category: 'Back & Core', desc: 'Keeps your back intact.', bulk: 2, location: 'back' },
     // Specialty (late)
     { name: 'Full Body Suit', cost: 400, protection: 18, minLevel: 9, category: 'Specialty', desc: 'The Michelin Man look.', bulk: 3, location: 'full' },
@@ -2534,13 +2593,23 @@ class StoreScene extends Phaser.Scene {
         });
 
         // Also allow spacebar to continue
-        this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', () => {
+        const goNext = () => {
             this.scene.start('PlayScene', {
                 health: this.health, level: this.level,
                 currency: this.currency, ownedPads: this.ownedPads,
                 protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender
             });
-        });
+        };
+        this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE).on('down', goNext);
+
+        // If nothing left to buy, tap anywhere to continue
+        const canBuyAnything = PADS.some((pad, i) => !this.ownedPads.includes(i) && this.level >= (pad.minLevel || 0) && this.currency >= pad.cost);
+        if (!canBuyAnything) {
+            this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 80, 'Nothing to buy — tap anywhere!', {
+                fontSize: '18px', fontFamily: 'Arial', color: '#888899',
+            }).setOrigin(0.5);
+            this.input.on('pointerdown', goNext);
+        }
     }
 }
 
