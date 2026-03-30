@@ -1543,12 +1543,14 @@ class PlayScene extends Phaser.Scene {
         const elbowPos    = rot(r*0.10, r*0.05);     // elbow near knee
         const handPos     = rot(r*0.28, -r*0.08);    // hands clasping shins
 
-        // --- 1. BACK — 5 smaller circles forming a rounded arc, pulled behind ---
+        // --- 1. BACK — 5 circles forming a CURVED arc (bulges out in middle) ---
         g.fillStyle(shirt, 1);
         for (let i = 0; i <= 4; i++) {
             const t = i / 4;
-            const bx = rot(-r*0.35, -r*0.40 + t * r * 0.80);
-            const rad = r * 0.22 + Math.sin(t * Math.PI) * r * 0.06;
+            // Middle circles bulge outward — sin curve makes a rounded back
+            const bulge = Math.sin(t * Math.PI) * r * 0.20;
+            const bx = rot(-r*0.25 - bulge, -r*0.40 + t * r * 0.80);
+            const rad = r * 0.22 + Math.sin(t * Math.PI) * r * 0.04;
             g.fillCircle(bx.x, bx.y, rad);
         }
         // Subtle shadow on outer edge
