@@ -181,6 +181,18 @@ class PlayScene extends Phaser.Scene {
         this.playerSkin = SKIN_TONES[this.skinTone % SKIN_TONES.length];
         // Gender — random at game start, persists across levels
         this.playerGender = data.playerGender != null ? data.playerGender : (Math.random() < 0.5 ? 'male' : 'female');
+
+        // Compute pad visuals from owned pads
+        this.padVisuals = { knees: 0, elbows: 0, hips: 0, back: 0, head: 0, full: false };
+        for (const idx of this.ownedPads) {
+            const pad = PADS[idx];
+            if (!pad) continue;
+            if (pad.location === 'full') {
+                this.padVisuals.full = true;
+            } else if (this.padVisuals[pad.location] !== undefined) {
+                this.padVisuals[pad.location] = Math.max(this.padVisuals[pad.location], pad.bulk);
+            }
+        }
     }
 
     create() {
@@ -1392,6 +1404,88 @@ class PlayScene extends Phaser.Scene {
         g.beginPath();
         g.moveTo(x - headR*0.22, y - H*0.79); g.lineTo(x + headR*0.22, y - H*0.79);
         g.strokePath();
+
+        // === PAD VISUALS — bumps under clothing ===
+        const pv = this.padVisuals || {};
+        const padShade = (color, amt) => {
+            const r2 = Math.min(255, (color >> 16 & 0xff) + amt);
+            const g2 = Math.min(255, (color >> 8 & 0xff) + amt);
+            const b2 = Math.min(255, (color & 0xff) + amt);
+            return (r2 << 16) | (g2 << 8) | b2;
+        };
+
+        if (pv.full) {
+            // Full body suit — puffy outline around torso, arms, legs
+            const puffW = H * 0.018;
+            g.fillStyle(padShade(shirt, 15), 0.45);
+            // Puffy torso outline
+            g.fillRect(x - H*0.06 - puffW, y - H*0.70, H*0.12 + puffW*2, H*0.27);
+            // Puffy shoulders
+            g.fillRect(x - H*0.09 - puffW, y - H*0.70, H*0.18 + puffW*2, H*0.035);
+            // Puffy upper legs
+            g.lineStyle(H*0.052, padShade(pants, 12), 0.35);
+            g.beginPath();
+            g.moveTo(x - H*0.02, y - H*0.42); g.lineTo(x - sw, y - H*0.21);
+            g.moveTo(x + H*0.02, y - H*0.42); g.lineTo(x + sw, y - H*0.21);
+            g.strokePath();
+            // Puffy lower legs
+            g.lineStyle(H*0.045, padShade(pants, 12), 0.35);
+            g.beginPath();
+            g.moveTo(x - sw, y - H*0.21); g.lineTo(x - sw, y + 2);
+            g.moveTo(x + sw, y - H*0.21); g.lineTo(x + sw, y + 2);
+            g.strokePath();
+            // Puffy arms
+            g.lineStyle(H*0.042, padShade(shirt, 15), 0.35);
+            g.beginPath();
+            g.moveTo(x - H*0.09, y - H*0.68); g.lineTo(x - H*0.10, y - H*0.55);
+            g.moveTo(x + H*0.09, y - H*0.68); g.lineTo(x + H*0.10, y - H*0.55);
+            g.strokePath();
+        }
+
+        if (pv.knees > 0) {
+            // Knee bumps on both legs — size based on bulk
+            const kb = pv.knees;
+            const kneeBumpR = H * (0.012 + kb * 0.006);
+            const kneeColor = padShade(pants, 18);
+            g.fillStyle(kneeColor, 0.7);
+            // Left knee
+            g.fillCircle(x - sw, y - H*0.21, kneeBumpR);
+            // Right knee
+            g.fillCircle(x + sw, y - H*0.21, kneeBumpR);
+        }
+
+        if (pv.elbows > 0) {
+            // Elbow bumps on both arms
+            const eb = pv.elbows;
+            const elbowBumpR = H * (0.010 + eb * 0.007);
+            const elbowColor = padShade(shirt, 20);
+            g.fillStyle(elbowColor, 0.7);
+            // Back elbow
+            g.fillCircle(x - H*0.10, y - H*0.55, elbowBumpR);
+            // Front elbow
+            g.fillCircle(x + H*0.10, y - H*0.55, elbowBumpR);
+        }
+
+        if (pv.hips > 0) {
+            // Wider hip bumps
+            const hb = pv.hips;
+            const hipBumpW = H * (0.010 + hb * 0.008);
+            const hipColor = padShade(pants, 14);
+            g.fillStyle(hipColor, 0.55);
+            // Left hip bulge
+            g.fillEllipse(x - H*0.06 - hipBumpW*0.3, y - H*0.43, hipBumpW, H*0.04);
+            // Right hip bulge
+            g.fillEllipse(x + H*0.06 + hipBumpW*0.3, y - H*0.43, hipBumpW, H*0.04);
+        }
+
+        if (pv.back > 0) {
+            // Slight hump on the back (left side of character)
+            const bb = pv.back;
+            const backBumpR = H * (0.012 + bb * 0.008);
+            const backColor = padShade(shirt, 10);
+            g.fillStyle(backColor, 0.55);
+            g.fillEllipse(x - H*0.07, y - H*0.60, backBumpR, H*0.06 + bb * H*0.01);
+        }
     }
 
     drawLying(g, x, y, slopeAngle) {
@@ -1403,6 +1497,8 @@ class PlayScene extends Phaser.Scene {
         const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
         const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
+        const pv = this.padVisuals || {};
+        const fullThick = pv.full ? 1.3 : 1.0;
         // Bigger crashes = player lies still longer (crash tier multiplies the beat)
         const beatMult = this.crashTier > 0 ? 1 + this.crashTier * 0.4 : 1;
         const beatDur = CONFIG.STOP_BEAT_DURATION * beatMult / 1000;
@@ -1440,9 +1536,9 @@ class PlayScene extends Phaser.Scene {
             const sitLegY = by + 3;
             const legEndX = flatLegX + p * (sitLegX - flatLegX);
             const legEndY = flatLegY + p * (sitLegY - flatLegY);
-            g.lineStyle(H*0.04, pants, 1);
+            g.lineStyle(H*0.04 * fullThick, pants, 1);
             g.beginPath(); g.moveTo(hipX, hipY); g.lineTo(legEndX, legEndY); g.strokePath();
-            g.lineStyle(H*0.035, pantsDark, 1);
+            g.lineStyle(H*0.035 * fullThick, pantsDark, 1);
             g.beginPath(); g.moveTo(hipX, hipY + H*0.03); g.lineTo(legEndX - H*0.02, legEndY + H*0.03); g.strokePath();
             // Shoes
             g.fillStyle(shoe, 1);
@@ -1451,7 +1547,7 @@ class PlayScene extends Phaser.Scene {
 
             // Torso — rotates from horizontal to upright
             g.fillStyle(shirt, 1);
-            g.lineStyle(H*0.11, shirt, 1);
+            g.lineStyle(H*0.11 * fullThick, shirt, 1);
             g.beginPath(); g.moveTo(hipX, hipY); g.lineTo(shoulderX, shoulderY); g.strokePath();
 
             // Arms — from splayed to resting at sides
@@ -1519,12 +1615,12 @@ class PlayScene extends Phaser.Scene {
 
             // === LEGS (behind jacket) ===
             // Back leg
-            g.lineStyle(H*0.036, pantsDark, 1);
+            g.lineStyle(H*0.036 * fullThick, pantsDark, 1);
             g.beginPath();
             g.moveTo(hipX + H*0.01, hipY); g.lineTo(x + H*0.19, by + H*0.005);
             g.strokePath();
             // Front leg
-            g.lineStyle(H*0.04, pants, 1);
+            g.lineStyle(H*0.04 * fullThick, pants, 1);
             g.beginPath();
             g.moveTo(hipX, hipY); g.lineTo(x + H*0.21, by - H*0.01);
             g.strokePath();
@@ -1534,18 +1630,19 @@ class PlayScene extends Phaser.Scene {
             g.fillRect(x + H*0.17, by + H*0.005, H*0.045, H*0.02);
 
             // === JACKET — filled polygon covering torso+hips as one piece ===
+            const jPuff = pv.full ? 1.3 : 1.0;
             g.fillStyle(shirt, 1);
             g.beginPath();
             // Right shoulder
-            g.moveTo(shoulderX + H*0.065, shoulderY);
+            g.moveTo(shoulderX + H*0.065*jPuff, shoulderY);
             // Down the right side of torso
-            g.lineTo(hipX + H*0.055, hipY - H*0.02);
+            g.lineTo(hipX + H*0.055*jPuff, hipY - H*0.02);
             // Across the hip/waist (jacket bottom)
-            g.lineTo(hipX - H*0.04, hipY + H*0.01);
+            g.lineTo(hipX - H*0.04*jPuff, hipY + H*0.01);
             // Up the left side (back)
-            g.lineTo(shoulderX - H*0.065, shoulderY + H*0.02);
+            g.lineTo(shoulderX - H*0.065*jPuff, shoulderY + H*0.02);
             // Across the shoulders
-            g.lineTo(shoulderX + H*0.065, shoulderY);
+            g.lineTo(shoulderX + H*0.065*jPuff, shoulderY);
             g.closePath();
             g.fillPath();
             // Jacket shadow on right side
@@ -1685,6 +1782,9 @@ class PlayScene extends Phaser.Scene {
         const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
+        const pv = this.padVisuals || {};
+        const fullPuff = pv.full ? 1.2 : 1.0; // 20% bigger circles when full suit
+        const fullThick = pv.full ? 1.3 : 1.0; // 30% thicker limb lines when full suit
 
         // Shadow
         g.fillStyle(0x000000, 0.15);
@@ -1712,7 +1812,7 @@ class PlayScene extends Phaser.Scene {
             // Middle circles bulge outward — sin curve makes a rounded back
             const bulge = Math.sin(t * Math.PI) * r * 0.20;
             const bx = rot(-r*0.25 - bulge, -r*0.40 + t * r * 0.80);
-            const rad = r * 0.22 + Math.sin(t * Math.PI) * r * 0.04;
+            const rad = (r * 0.22 + Math.sin(t * Math.PI) * r * 0.04) * fullPuff;
             g.fillCircle(bx.x, bx.y, rad);
         }
         // Subtle shadow on outer edge
@@ -1721,13 +1821,13 @@ class PlayScene extends Phaser.Scene {
         g.fillCircle(shadowP.x, shadowP.y, r * 0.15);
 
         // --- 2. THIGHS — hip to knees ---
-        g.lineStyle(r * 0.18, pants, 1);
+        g.lineStyle(r * 0.18 * fullThick, pants, 1);
         g.beginPath(); g.moveTo(hipPos.x, hipPos.y); g.lineTo(kneePos.x, kneePos.y); g.strokePath();
         g.fillStyle(pants, 1);
-        g.fillCircle(kneePos.x, kneePos.y, r * 0.12);
+        g.fillCircle(kneePos.x, kneePos.y, r * 0.12 * fullPuff);
 
         // --- 3. SHINS — knee up to feet ---
-        g.lineStyle(r * 0.14, pants, 1);
+        g.lineStyle(r * 0.14 * fullThick, pants, 1);
         g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
 
         // --- 4. SHOES ---
@@ -1749,14 +1849,14 @@ class PlayScene extends Phaser.Scene {
 
         // --- 6. ARMS — drawn LAST so they appear IN FRONT of body ---
         // Upper arm (sleeve)
-        g.lineStyle(r * 0.12, shirt, 1);
+        g.lineStyle(r * 0.12 * fullThick, shirt, 1);
         g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(elbowPos.x, elbowPos.y); g.strokePath();
         // Forearm (skin)
-        g.lineStyle(r * 0.10, skin, 1);
+        g.lineStyle(r * 0.10 * fullThick, skin, 1);
         g.beginPath(); g.moveTo(elbowPos.x, elbowPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
         // Hand
         g.fillStyle(skin, 1);
-        g.fillCircle(handPos.x, handPos.y, r * 0.08);
+        g.fillCircle(handPos.x, handPos.y, r * 0.08 * fullPuff);
     }
 
     // ================================================================
@@ -2224,18 +2324,18 @@ class PlayScene extends Phaser.Scene {
 // ============================================================
 const PADS = [
     // Specialty (early)
-    { name: 'Newspaper & Tape', cost: 2, protection: 1, minLevel: 0, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
+    { name: 'Newspaper & Tape', cost: 2, protection: 1, minLevel: 0, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.', bulk: 2, location: 'knees' },
     // Knees & Elbows
-    { name: 'Foam Knee Pads', cost: 10, protection: 2, minLevel: 0, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
-    { name: 'Elbow Guards', cost: 20, protection: 3, minLevel: 2, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
+    { name: 'Foam Knee Pads', cost: 10, protection: 2, minLevel: 0, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.', bulk: 1, location: 'knees' },
+    { name: 'Rollerblade Elbow Pads', cost: 20, protection: 3, minLevel: 2, category: 'Knees & Elbows', desc: 'Big chunky elbow protection.', bulk: 3, location: 'elbows' },
     // Head
-    { name: 'Wig w/ Hidden Pads', cost: 40, protection: 4, minLevel: 3, category: 'Head', desc: 'Fashion meets function.' },
+    { name: 'Wig w/ Hidden Pads', cost: 40, protection: 4, minLevel: 3, category: 'Head', desc: 'Fashion meets function.', bulk: 0, location: 'head' },
     // Back & Core
-    { name: 'D3O Hip Pads', cost: 75, protection: 6, minLevel: 4, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
-    { name: 'Hard Shell Knee', cost: 120, protection: 8, minLevel: 5, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
-    { name: 'Spine Protector', cost: 200, protection: 12, minLevel: 7, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    { name: 'D3O Hip Pads', cost: 75, protection: 6, minLevel: 4, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.', bulk: 1, location: 'hips' },
+    { name: 'Hard Shell Knee', cost: 120, protection: 8, minLevel: 5, category: 'Knees & Elbows', desc: 'Serious knee protection.', bulk: 2, location: 'knees' },
+    { name: 'Spine Protector', cost: 200, protection: 12, minLevel: 7, category: 'Back & Core', desc: 'Keeps your back intact.', bulk: 2, location: 'back' },
     // Specialty (late)
-    { name: 'Full Body Suit', cost: 400, protection: 18, minLevel: 9, category: 'Specialty', desc: 'The Michelin Man look.' },
+    { name: 'Full Body Suit', cost: 400, protection: 18, minLevel: 9, category: 'Specialty', desc: 'The Michelin Man look.', bulk: 3, location: 'full' },
 ];
 
 class StoreScene extends Phaser.Scene {
