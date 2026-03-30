@@ -160,6 +160,16 @@ class PlayScene extends Phaser.Scene {
         SEGMENTS = this.levelData.segments;
         this.costume = COSTUMES[this.currentLevel % COSTUMES.length];
         this.location = LOCATIONS[this.currentLevel % LOCATIONS.length];
+        // Random skin tone per run (persists across retakes of same level)
+        const SKIN_TONES = [
+            { skin: 0xf5d0a9, skinDark: 0xd4a87c, hair: 0x2a1a0a },  // light
+            { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x1a1008 },  // medium
+            { skin: 0xc68642, skinDark: 0xa06a30, hair: 0x0a0a06 },  // tan
+            { skin: 0x8d5524, skinDark: 0x6d3a14, hair: 0x0a0808 },  // brown
+            { skin: 0x5c3310, skinDark: 0x3c1a08, hair: 0x080606 },  // dark
+        ];
+        this.skinTone = data.skinTone != null ? data.skinTone : Math.floor(Math.random() * SKIN_TONES.length);
+        this.playerSkin = SKIN_TONES[this.skinTone % SKIN_TONES.length];
     }
 
     create() {
@@ -302,11 +312,11 @@ class PlayScene extends Phaser.Scene {
         } else if ((this.playerState === 'stopped' || this.playerState === 'crashed') && this.showingScore) {
             // Check fail conditions: crashed or >5ft from mark = must retry
             const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5);
-            const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection };
+            const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection, skinTone: this.skinTone };
             if (this.currentHealth <= 0) {
                 this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0 });
             } else if (failed) {
-                // Retry same level — increment take number
+                // Retry same level — increment take number, keep skin tone
                 this.scene.start('PlayScene', { ...passData, level: this.currentLevel, takeNumber: this.takeNumber + 1 });
             } else {
                 // Success — go to store before next level
@@ -1152,10 +1162,11 @@ class PlayScene extends Phaser.Scene {
     drawStanding(g, x, y) {
         const H = CONFIG.PERSON_HEIGHT;
         const c = this.costume || COSTUMES[0];
-        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const ps = this.playerSkin || { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x2a1a0a };
+        const skin = ps.skin, skinDark = ps.skinDark;
         const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
         const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
-        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const headR = H * 0.058;
         const sw = H * 0.05;
 
@@ -1288,10 +1299,11 @@ class PlayScene extends Phaser.Scene {
 
     drawLying(g, x, y) {
         const c = this.costume || COSTUMES[0];
-        const skin = 0xd4a87c, skinDark = 0xc09670;
+        const ps = this.playerSkin || { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x2a1a0a };
+        const skin = ps.skin, skinDark = ps.skinDark;
         const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.75 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.75 | 0) << 8 | ((shirt & 0xff) * 0.75 | 0);
         const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.75 | 0) << 16 | ((pants >> 8 & 0xff) * 0.75 | 0) << 8 | ((pants & 0xff) * 0.75 | 0);
-        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
         // Bigger crashes = player lies still longer (crash tier multiplies the beat)
         const beatMult = this.crashTier > 0 ? 1 + this.crashTier * 0.4 : 1;
@@ -1552,10 +1564,11 @@ class PlayScene extends Phaser.Scene {
     drawRolling(g, x, y, rotation) {
         const r = CONFIG.PLAYER_RADIUS;
         const c = this.costume || COSTUMES[0];
-        const skin = 0xd4a87c, skinDark = 0xb08860;
+        const ps = this.playerSkin || { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x2a1a0a };
+        const skin = ps.skin, skinDark = ps.skinDark;
         const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.7 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.7 | 0) << 8 | ((shirt & 0xff) * 0.7 | 0);
         const pants = c.pants, pantsDark = ((pants >> 16 & 0xff) * 0.7 | 0) << 16 | ((pants >> 8 & 0xff) * 0.7 | 0) << 8 | ((pants & 0xff) * 0.7 | 0);
-        const hair = 0x2a1a0a, shoe = 0x1a1a1a;
+        const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
 
@@ -1567,13 +1580,12 @@ class PlayScene extends Phaser.Scene {
 
         // KEY BODY POSITIONS — back curves out wide, limbs tuck in front
         const hipPos      = rot(0, r*0.38);          // bottom — butt/hip
-        const kneePos     = rot(r*0.35, r*0.10);     // knees out front, clearly visible
-        const shinEnd     = rot(r*0.30, -r*0.20);    // shins angled up
-        const footPos     = rot(r*0.18, -r*0.38);    // feet near head, clearly visible
-        const headPos     = rot(r*0.10, -r*0.42);    // head at top, tucked
+        const kneePos     = rot(r*0.30, -r*0.05);    // knees pulled UP toward chest
+        const footPos     = rot(r*0.12, -r*0.35);    // feet near head
+        const headPos     = rot(r*0.08, -r*0.42);    // head at top, tucked
         const shoulderPos = rot(-r*0.18, -r*0.35);   // upper back/shoulder
-        const elbowPos    = rot(r*0.10, r*0.05);     // elbow near knee
-        const handPos     = rot(r*0.28, -r*0.08);    // hands clasping shins
+        const elbowPos    = rot(r*0.15, r*0.10);     // elbow near knee
+        const handPos     = rot(r*0.25, -r*0.12);    // hands clasping shins
 
         // --- 1. BACK — 5 circles forming a CURVED arc (bulges out in middle) ---
         g.fillStyle(shirt, 1);
@@ -1596,10 +1608,9 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(pants, 1);
         g.fillCircle(kneePos.x, kneePos.y, r * 0.12);
 
-        // --- 3. SHINS — knee to feet ---
+        // --- 3. SHINS — knee up to feet ---
         g.lineStyle(r * 0.14, pants, 1);
-        g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(shinEnd.x, shinEnd.y); g.strokePath();
-        g.beginPath(); g.moveTo(shinEnd.x, shinEnd.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
+        g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
 
         // --- 4. SHOES ---
         g.fillStyle(shoe, 1);
@@ -1611,9 +1622,6 @@ class PlayScene extends Phaser.Scene {
         g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(headPos.x, headPos.y); g.strokePath();
         g.fillStyle(hair, 1);
         g.fillCircle(headPos.x, headPos.y, headR);
-        const facePos = rot(r*0.20, -r*0.36);
-        g.fillStyle(skin, 1);
-        g.fillCircle(facePos.x, facePos.y, headR * 0.6);
 
         // --- 6. ARMS — drawn LAST so they appear IN FRONT of body ---
         // Upper arm (sleeve)
@@ -1868,16 +1876,19 @@ class PlayScene extends Phaser.Scene {
 
     showScore() {
         const d = this.scoreData;
-        this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${d.distFeet.toFixed(1)}ft from mark`).setVisible(true);
-        if (d.crashed) {
-            const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
-            this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
-        }
         const failed = d.crashed || d.distFeet > 5;
         const baseEarned = failed ? 0 : (d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5)));
         const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
         this.currency += earned;
         this.showingScore = false;
+        // Delay ALL text until after the lying-still beat
+        this.time.delayedCall(CONFIG.STOP_BEAT_DURATION, () => {
+            this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${d.distFeet.toFixed(1)}ft from mark`).setVisible(true);
+            if (d.crashed) {
+                const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
+                this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
+            }
+        });
         this.time.delayedCall(CONFIG.THUMBS_UP_DURATION, () => {
             this.showingScore = true;
             const hs = `Health: ${Math.round(this.currentHealth)}/${CONFIG.BASE_HEALTH}  (-${Math.round(d.healthCost)})`;
