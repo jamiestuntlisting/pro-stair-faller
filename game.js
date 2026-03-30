@@ -1972,8 +1972,8 @@ class PlayScene extends Phaser.Scene {
     showScore() {
         const d = this.scoreData;
         const failed = d.crashed || d.distFeet > 5.1;
-        // Higher levels pay more — base scales with level number
-        const levelPay = 100 + this.currentLevel * 25; // L1=100, L5=200, L12=400
+        // Higher levels pay much more — low early, high late
+        const levelPay = 50 + this.currentLevel * 40; // L1=$50, L3=$130, L5=$250, L8=$370, L12=$530
         const baseEarned = failed ? 0 : (d.isPerfect ? levelPay : Math.max(0, Math.round(levelPay - d.distFeet * 2.5)));
         const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
         this.currency += earned;
@@ -2119,17 +2119,17 @@ class PlayScene extends Phaser.Scene {
 // ============================================================
 const PADS = [
     // Knees & Elbows
-    { name: 'Foam Knee Pads', cost: 25, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
-    { name: 'Hard Shell Knee', cost: 80, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
-    { name: 'Elbow Guards', cost: 35, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
+    { name: 'Foam Knee Pads', cost: 10, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
+    { name: 'Hard Shell Knee', cost: 60, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
+    { name: 'Elbow Guards', cost: 15, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
     // Back & Core
-    { name: 'D3O Hip Pads', cost: 60, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
-    { name: 'Spine Protector', cost: 120, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    { name: 'D3O Hip Pads', cost: 40, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
+    { name: 'Spine Protector', cost: 100, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
     // Head
-    { name: 'Wig w/ Hidden Pads', cost: 50, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
+    { name: 'Wig w/ Hidden Pads', cost: 30, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
     // Specialty
     { name: 'Newspaper & Tape', cost: 2, protection: 1, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
-    { name: 'Full Body Suit', cost: 200, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
+    { name: 'Full Body Suit', cost: 150, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
 ];
 
 class StoreScene extends Phaser.Scene {
@@ -2165,50 +2165,47 @@ class StoreScene extends Phaser.Scene {
         // Build items into a container for scrolling
         const container = this.add.container(0, headerH);
         let curY = 10;
-        const itemH = 100;
+        const itemH = 160;
         let lastCategory = '';
         PADS.forEach((pad, i) => {
             if (pad.category !== lastCategory) {
                 lastCategory = pad.category;
                 container.add(this.add.text(40, curY, pad.category.toUpperCase(), {
-                    fontSize: '18px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 3,
+                    fontSize: '28px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 4,
                 }));
-                curY += 28;
+                curY += 40;
             }
             const y = curY;
             const owned = this.ownedPads.includes(i);
             const canBuy = !owned && this.currency >= pad.cost;
 
-            const bg = this.add.rectangle(CONFIG.WIDTH/2, y + itemH/2, CONFIG.WIDTH - 40, itemH - 8, owned ? 0x2a3a2a : 0x1e1e2e);
+            const bg = this.add.rectangle(CONFIG.WIDTH/2, y + itemH/2, CONFIG.WIDTH - 30, itemH - 10, owned ? 0x2a3a2a : 0x1e1e2e);
             bg.setStrokeStyle(2, owned ? 0x44aa44 : 0x333355);
             container.add(bg);
 
-            container.add(this.add.text(50, y + 12, pad.name, {
-                fontSize: '26px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
+            container.add(this.add.text(40, y + 14, pad.name, {
+                fontSize: '38px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
             }));
-            container.add(this.add.text(50, y + 44, pad.desc, {
-                fontSize: '18px', fontFamily: 'Arial', color: '#666688',
+            container.add(this.add.text(40, y + 60, pad.desc, {
+                fontSize: '24px', fontFamily: 'Arial', color: '#666688',
             }));
 
             const dmgReduction = (pad.protection * 0.3).toFixed(1);
-            container.add(this.add.text(CONFIG.WIDTH - 350, y + 10, `+${pad.protection} protection`, {
+            container.add(this.add.text(40, y + 95, `+${pad.protection} protection  •  -${dmgReduction} damage/level`, {
                 fontSize: '22px', fontFamily: 'Arial', color: '#88cc88',
-            }));
-            container.add(this.add.text(CONFIG.WIDTH - 350, y + 40, `-${dmgReduction} damage/level`, {
-                fontSize: '16px', fontFamily: 'Arial', color: '#66aa66',
             }));
 
             if (owned) {
-                container.add(this.add.text(CONFIG.WIDTH - 110, y + itemH/2 - 10, 'OWNED', {
-                    fontSize: '24px', fontFamily: 'Arial', color: '#44aa44',
+                container.add(this.add.text(CONFIG.WIDTH - 120, y + itemH/2, 'OWNED', {
+                    fontSize: '32px', fontFamily: 'Arial', color: '#44aa44', fontStyle: 'bold',
                 }).setOrigin(0.5));
             } else {
                 const btnColor = canBuy ? 0x3a5a3a : 0x3a2a2a;
-                const btn = this.add.rectangle(CONFIG.WIDTH - 110, y + itemH/2, 120, 50, btnColor);
-                btn.setStrokeStyle(2, canBuy ? 0x66cc66 : 0x664444);
+                const btn = this.add.rectangle(CONFIG.WIDTH - 120, y + itemH/2, 180, 70, btnColor);
+                btn.setStrokeStyle(3, canBuy ? 0x66cc66 : 0x664444);
                 container.add(btn);
-                container.add(this.add.text(CONFIG.WIDTH - 110, y + itemH/2, `$${pad.cost}`, {
-                    fontSize: '24px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444', fontStyle: 'bold',
+                container.add(this.add.text(CONFIG.WIDTH - 120, y + itemH/2, `$${pad.cost}`, {
+                    fontSize: '34px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444', fontStyle: 'bold',
                 }).setOrigin(0.5));
 
                 if (canBuy) {
