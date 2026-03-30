@@ -250,11 +250,6 @@ class PlayScene extends Phaser.Scene {
             fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold',
         }).setOrigin(0.5).setScrollFactor(0);
 
-        this.add.text(CONFIG.WIDTH / 2, 80, `${this.levelData.angleDeg}°  •  ${this.levelData.steps.length} stairs`, {
-            fontSize: '15px', fontFamily: 'Arial', color: '#666688',
-            stroke: '#000000', strokeThickness: 3,
-        }).setOrigin(0.5).setScrollFactor(0);
-
         this.scoreText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 60, '', {
             fontSize: '60px', fontFamily: 'Georgia, serif', color: '#ffffff',
             stroke: '#000000', strokeThickness: 7,
