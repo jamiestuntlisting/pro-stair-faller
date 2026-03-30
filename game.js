@@ -84,25 +84,26 @@ const LOCATIONS = [
 ];
 const LEVELS = [
     // sweetSpot = optimal meter value (0-1), greenW = ±range for green, yellowExtra = extra ± for yellow
-    // All sweet spots audited: need higher values because friction on flat eats velocity
-    // L1-2: Tutorial — wide sweet spots, slow meter
-    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.68, greenW: 0.10, yellowExtra: 0.08 },
-    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.65, greenW: 0.08, yellowExtra: 0.07 },
+    // Sweet spots tuned from playtesting. Green zones much smaller — precision matters.
+    // L1: was 0.68 (too far), L3: was 0.64 (too short)
+    // L1-2: Tutorial
+    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.58, greenW: 0.04, yellowExtra: 0.06 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.62, greenW: 0.04, yellowExtra: 0.05 },
     // L3-4: Short staircases
-    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.64, greenW: 0.07, yellowExtra: 0.06 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.70, greenW: 0.07, yellowExtra: 0.06 },
-    // L5-6: Medium — tighter zones
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.66, greenW: 0.06, yellowExtra: 0.05 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.62, greenW: 0.06, yellowExtra: 0.05 },
-    // L7-8: Long staircases — narrow zones
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.05, yellowExtra: 0.05 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.05, yellowExtra: 0.04 },
-    // L9-10: Very long — tight zones
-    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.04 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.04, yellowExtra: 0.04 },
-    // L11-12: Extreme — very tight
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
+    // L5-6: Medium
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.66, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.62, greenW: 0.03, yellowExtra: 0.04 },
+    // L7-8: Long staircases
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.03, yellowExtra: 0.03 },
+    // L9-10: Very long
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.02, yellowExtra: 0.03 },
+    // L11-12: Extreme
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.02, yellowExtra: 0.02 },
 ];
 
 function buildLevel(levelDef) {
@@ -2111,14 +2112,26 @@ class StoreScene extends Phaser.Scene {
             curY += itemH;
         });
 
-        // Enable scrolling via drag
+        // Enable scrolling via drag — track last pointer Y for smooth dragging
         const totalContentH = curY + 20;
         const maxScroll = Math.max(0, totalContentH - scrollH);
-        this.input.on('pointermove', (pointer) => {
-            if (pointer.isDown && maxScroll > 0) {
-                container.y = Phaser.Math.Clamp(container.y + pointer.velocity.y * 0.02, headerH - maxScroll, headerH);
+        let dragLastY = 0;
+        let isDragging = false;
+        this.input.on('pointerdown', (pointer) => {
+            // Only start drag if in the scroll area (not on continue button)
+            if (pointer.y > headerH && pointer.y < CONFIG.HEIGHT - footerH) {
+                dragLastY = pointer.y;
+                isDragging = true;
             }
         });
+        this.input.on('pointermove', (pointer) => {
+            if (isDragging && pointer.isDown && maxScroll > 0) {
+                const dy = pointer.y - dragLastY;
+                dragLastY = pointer.y;
+                container.y = Phaser.Math.Clamp(container.y + dy, headerH - maxScroll, headerH);
+            }
+        });
+        this.input.on('pointerup', () => { isDragging = false; });
         // Scroll wheel
         this.input.on('wheel', (pointer, gameObjects, dx, dy) => {
             if (maxScroll > 0) {
