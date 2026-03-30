@@ -106,7 +106,7 @@ const LEVELS = [
     { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.67, greenW: 0.04, yellowExtra: 0.05 },
     // L3-4: Short staircases
     { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.74, greenW: 0.04, yellowExtra: 0.05 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.85, greenW: 0.03, yellowExtra: 0.05 },
     // L5-6: Medium
     { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.88, greenW: 0.05, yellowExtra: 0.05 },
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.05, yellowExtra: 0.05 },
@@ -115,14 +115,14 @@ const LEVELS = [
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.82, greenW: 0.04, yellowExtra: 0.05 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.84, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.78, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme
     { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.83, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
     // L13+: EXTREME — unrealistic, creative, very steep
-    { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.60, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Stairway to Hell', angleDeg: 70, numSteps: 60, flatLength: 2500, markOffset: 1500, sweetSpot: 0.55, greenW: 0.03, yellowExtra: 0.03 },
-    { name: 'Skyscraper', angleDeg: 30, numSteps: 200, flatLength: 3000, markOffset: 1800, sweetSpot: 0.92, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Stairway to Hell', angleDeg: 70, numSteps: 60, flatLength: 2500, markOffset: 1500, sweetSpot: 0.75, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'Skyscraper', angleDeg: 30, numSteps: 200, flatLength: 3000, markOffset: 1800, sweetSpot: 0.96, greenW: 0.03, yellowExtra: 0.03 },
     { name: 'The Waterfall', angleDeg: 75, numSteps: 80, flatLength: 3000, markOffset: 2000, sweetSpot: 0.50, greenW: 0.02, yellowExtra: 0.03 },
     { name: 'Mount Doom', angleDeg: 60, numSteps: 120, flatLength: 2500, markOffset: 1600, sweetSpot: 0.65, greenW: 0.02, yellowExtra: 0.03 },
     { name: 'The Abyss', angleDeg: 80, numSteps: 100, flatLength: 4000, markOffset: 2500, sweetSpot: 0.45, greenW: 0.02, yellowExtra: 0.02 },
@@ -130,6 +130,18 @@ const LEVELS = [
     { name: 'Freefall', angleDeg: 85, numSteps: 60, flatLength: 5000, markOffset: 3000, sweetSpot: 0.40, greenW: 0.02, yellowExtra: 0.02 },
     // L21: The ultimate challenge
     { name: 'Empire State Building', angleDeg: 35, numSteps: 1576, flatLength: 6000, markOffset: 4000, sweetSpot: 0.96, greenW: 0.01, yellowExtra: 0.02 },
+    // L22-25: Nightmare tier
+    { name: 'Black Diamond', angleDeg: 68, numSteps: 90, flatLength: 3500, markOffset: 2200, sweetSpot: 0.58, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'Broken Elevator', angleDeg: 42, numSteps: 180, flatLength: 3000, markOffset: 1900, sweetSpot: 0.88, greenW: 0.02, yellowExtra: 0.02 },
+    { name: 'The Plunge', angleDeg: 78, numSteps: 70, flatLength: 4000, markOffset: 2600, sweetSpot: 0.48, greenW: 0.02, yellowExtra: 0.02 },
+    { name: 'Spiral of Pain', angleDeg: 55, numSteps: 150, flatLength: 3500, markOffset: 2300, sweetSpot: 0.72, greenW: 0.02, yellowExtra: 0.02 },
+    // L26-28: Insanity tier
+    { name: 'Mariana Trench', angleDeg: 82, numSteps: 120, flatLength: 5000, markOffset: 3200, sweetSpot: 0.42, greenW: 0.015, yellowExtra: 0.02 },
+    { name: 'Space Needle', angleDeg: 38, numSteps: 400, flatLength: 4000, markOffset: 2800, sweetSpot: 0.94, greenW: 0.015, yellowExtra: 0.02 },
+    { name: 'Crater Drop', angleDeg: 76, numSteps: 160, flatLength: 4500, markOffset: 3000, sweetSpot: 0.52, greenW: 0.015, yellowExtra: 0.02 },
+    // L29-30: The final frontier
+    { name: 'Death Wish', angleDeg: 84, numSteps: 200, flatLength: 5500, markOffset: 3500, sweetSpot: 0.44, greenW: 0.01, yellowExtra: 0.02 },
+    { name: 'Rock Bottom', angleDeg: 88, numSteps: 250, flatLength: 6000, markOffset: 4000, sweetSpot: 0.38, greenW: 0.01, yellowExtra: 0.01 },
 ];
 
 function buildLevel(levelDef) {
@@ -375,7 +387,7 @@ class PlayScene extends Phaser.Scene {
             } else {
                 // Success — check for end-of-week rest
                 const nextLevel = this.currentLevel + 1;
-                const isRestWeek = (nextLevel % 5 === 0); // after level 5, 10, 15...
+                const isRestWeek = (nextLevel === 5 || nextLevel === 10 || (nextLevel > 10 && nextLevel % 10 === 0)); // at 5, 10, 20, 30...
                 if (isRestWeek) {
                     // Rest up — recover health
                     passData.health = Math.min(CONFIG.BASE_HEALTH, passData.health + 40);
