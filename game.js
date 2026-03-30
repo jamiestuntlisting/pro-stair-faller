@@ -62,13 +62,13 @@ const CONFIG = {
 const COSTUMES = [
     { name: 'Chicken Suit', shirt: 0xddcc22, pants: 0xccbb11, hat: 'comb', prop: 'rubber_chicken' },
     { name: 'Superhero', shirt: 0xcc2222, pants: 0x2222cc, hat: 'mask', prop: 'cape' },
-    { name: 'Gorilla Suit', shirt: 0x5a3a1a, pants: 0x4a2a0a, hat: 'gorilla', prop: 'banana' },
-    { name: 'Tuxedo', shirt: 0x1a1a1a, pants: 0x1a1a1a, hat: 'tophat', prop: 'cane' },
+    { name: 'Gorilla Suit', shirt: 0x8a6a3a, pants: 0x7a5a2a, hat: 'gorilla', prop: 'banana' },
+    { name: 'Tuxedo', shirt: 0xeeeeee, pants: 0x2a2a3a, hat: 'tophat', prop: 'cane' },
     { name: 'Viking', shirt: 0x8b6914, pants: 0x5a4a2a, hat: 'horns', prop: 'shield' },
     { name: 'Astronaut', shirt: 0xeeeeee, pants: 0xdddddd, hat: 'helmet', prop: 'flag' },
-    { name: 'Pirate', shirt: 0xcc4444, pants: 0x2a2a2a, hat: 'pirate', prop: 'sword' },
+    { name: 'Pirate', shirt: 0xcc4444, pants: 0x554433, hat: 'pirate', prop: 'sword' },
     { name: 'Clown', shirt: 0xff6622, pants: 0x22cc44, hat: 'rainbow', prop: 'horn' },
-    { name: 'Chef', shirt: 0xffffff, pants: 0x2a2a2a, hat: 'chef', prop: 'pan' },
+    { name: 'Chef', shirt: 0xffffff, pants: 0x444466, hat: 'chef', prop: 'pan' },
     { name: 'Wizard', shirt: 0x4422aa, pants: 0x331188, hat: 'wizard', prop: 'wand' },
     { name: 'Luchador', shirt: 0xee2288, pants: 0xeecc22, hat: 'lucha', prop: 'belt' },
     { name: 'Scuba Diver', shirt: 0x1a1a1a, pants: 0x1a1a1a, hat: 'goggles', prop: 'flipper' },
@@ -224,7 +224,7 @@ class PlayScene extends Phaser.Scene {
             fontSize: '22px', fontFamily: 'Georgia, serif', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 4,
         }).setOrigin(0.5).setScrollFactor(0);
-        this.add.text(CONFIG.WIDTH / 2, 68, `${loc.name}  •  ${cos.name}  •  ${this.levelData.angleDeg}°  •  ${this.levelData.steps.length} stairs`, {
+        this.add.text(CONFIG.WIDTH / 2, 68, `${this.levelData.steps.length} stairs`, {
             fontSize: '12px', fontFamily: 'Arial', color: '#777799',
             stroke: '#000000', strokeThickness: 2,
         }).setOrigin(0.5).setScrollFactor(0);
@@ -1532,83 +1532,83 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(0x000000, 0.15);
         g.fillEllipse(x, y + r + 4, r * 0.8, 6);
 
-        // === BARREL ROLL — rounded back, tucked body ===
-        // The BACK is a large smooth ellipse (the rounded part that rolls on ground)
-        // Legs and head tuck into the front, making a kidney/comma shape
+        // === BARREL ROLL — smooth rounded back with visible limbs ===
 
-        // Key positions
-        const backCenter = rot(-r*0.15, 0);       // center of the back mass
-        const hipPos     = rot(-r*0.08, r*0.32);  // hip/butt area
-        const kneePos    = rot(r*0.18, r*0.18);   // knees pulled to chest
-        const footPos    = rot(r*0.12, -r*0.22);  // feet near head
-        const headPos    = rot(r*0.08, -r*0.35);  // head tucked at top
-        const handPos    = rot(r*0.22, 0);         // hands on shins
+        // KEY BODY POSITIONS — back curves out wide, limbs tuck in front
+        const hipPos      = rot(0, r*0.38);          // bottom — butt/hip
+        const kneePos     = rot(r*0.35, r*0.10);     // knees out front, clearly visible
+        const shinEnd     = rot(r*0.30, -r*0.20);    // shins angled up
+        const footPos     = rot(r*0.18, -r*0.38);    // feet near head, clearly visible
+        const headPos     = rot(r*0.10, -r*0.42);    // head at top, tucked
+        const shoulderPos = rot(-r*0.18, -r*0.35);   // upper back/shoulder
+        const elbowPos    = rot(r*0.10, r*0.05);     // elbow near knee
+        const handPos     = rot(r*0.28, -r*0.08);    // hands clasping shins
 
-        // --- 1. BACK — large filled ellipse for the rounded back ---
-        // This is the signature shape — a big smooth curve
-        const backRx = r * 0.52;  // wide
-        const backRy = r * 0.72;  // tall — covers most of the body height
+        // --- 1. BACK — smooth rounded arc using many overlapping circles ---
         g.fillStyle(shirt, 1);
-        // Draw ellipse rotated to match the body rotation
-        g.save();
-        // Phaser Graphics doesn't have rotated ellipse, so use overlapping circles
-        // to create a smooth rounded back shape
-        for (let i = -3; i <= 3; i++) {
-            const t = i / 3;
-            const bx = rot(-r*0.22 - Math.abs(t)*r*0.08, t * r*0.55);
-            const br = r * 0.30 - Math.abs(t) * r*0.05;
-            g.fillCircle(bx.x, bx.y, br);
+        // Dense arc from shoulder area, around the outside, down to hip
+        for (let i = 0; i <= 8; i++) {
+            const t = i / 8;  // 0=top, 1=bottom
+            const angle = -0.45 + t * 0.90;  // arc from top-left to bottom
+            const cx = -r * 0.48 * Math.cos(angle * Math.PI);
+            const cy = -r * 0.50 + t * r * 0.90;
+            const p = rot(cx, cy);
+            const rad = r * 0.28 + Math.sin(t * Math.PI) * r * 0.08; // fatter in middle
+            g.fillCircle(p.x, p.y, rad);
+        }
+        // Back shadow — subtle darker edge
+        g.fillStyle(shirtDark, 0.2);
+        for (let i = 1; i <= 6; i++) {
+            const t = i / 7;
+            const cx = -r * 0.56 * Math.cos(t * Math.PI * 0.6);
+            const cy = -r * 0.40 + t * r * 0.70;
+            const p = rot(cx, cy);
+            g.fillCircle(p.x, p.y, r * 0.16);
         }
 
-        // Back shadow — darker on the outer edge
-        g.fillStyle(shirtDark, 0.25);
-        for (let i = -2; i <= 2; i++) {
-            const t = i / 2;
-            const bx = rot(-r*0.32 - Math.abs(t)*r*0.05, t * r*0.45);
-            g.fillCircle(bx.x, bx.y, r * 0.18);
-        }
-
-        // --- 2. LOWER BODY — pants area (hip to knees) ---
-        g.fillStyle(pants, 1);
-        // Hip mass
-        g.fillCircle(hipPos.x, hipPos.y, r * 0.25);
-        // Thigh connecting hip to knee
-        g.lineStyle(r * 0.22, pants, 1);
+        // --- 2. THIGHS — clearly visible, from hip forward to knees ---
+        g.lineStyle(r * 0.18, pants, 1);
         g.beginPath(); g.moveTo(hipPos.x, hipPos.y); g.lineTo(kneePos.x, kneePos.y); g.strokePath();
-        // Knee bump
-        g.fillCircle(kneePos.x, kneePos.y, r * 0.14);
-        // Shin — knee to foot
-        g.lineStyle(r * 0.16, pants, 1);
-        g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
+        // Knee circle
+        g.fillStyle(pants, 1);
+        g.fillCircle(kneePos.x, kneePos.y, r * 0.12);
 
-        // --- 3. SHOES ---
+        // --- 3. SHINS — knee up to feet, clearly separate ---
+        g.lineStyle(r * 0.14, pants, 1);
+        g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(shinEnd.x, shinEnd.y); g.strokePath();
+        g.beginPath(); g.moveTo(shinEnd.x, shinEnd.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
+
+        // --- 4. FEET/SHOES — clearly visible ---
         g.fillStyle(shoe, 1);
-        g.fillCircle(footPos.x, footPos.y, r * 0.09);
+        g.fillCircle(footPos.x, footPos.y, r * 0.10);
+        // Shoe detail
+        g.fillStyle(0x333333, 1);
+        const soleDir = rot(r*0.22, -r*0.40);
+        g.fillCircle(soleDir.x, soleDir.y, r * 0.06);
 
-        // --- 4. ARMS — wrapping around shins ---
-        // Upper arm (sleeve)
-        const shoulderPos = rot(-r*0.15, -r*0.38);
-        g.lineStyle(r * 0.12, shirt, 0.9);
-        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
-        // Forearm (skin)
+        // --- 5. UPPER ARM — from shoulder down to elbow ---
+        g.lineStyle(r * 0.12, shirt, 1);
+        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(elbowPos.x, elbowPos.y); g.strokePath();
+
+        // --- 6. FOREARM — elbow to hand (skin visible) ---
         g.lineStyle(r * 0.10, skin, 1);
-        g.beginPath(); g.moveTo(handPos.x, handPos.y); g.lineTo(kneePos.x, kneePos.y); g.strokePath();
-        // Hand
+        g.beginPath(); g.moveTo(elbowPos.x, elbowPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
+        // Hand circle
         g.fillStyle(skin, 1);
-        g.fillCircle(handPos.x, handPos.y, r * 0.07);
+        g.fillCircle(handPos.x, handPos.y, r * 0.08);
 
-        // --- 5. HEAD — tucked between knees ---
+        // --- 7. HEAD — tucked at top ---
         const headR = r * 0.22;
-        // Hair (back of head visible)
+        // Neck
+        g.lineStyle(r * 0.10, skin, 1);
+        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(headPos.x, headPos.y); g.strokePath();
+        // Hair
         g.fillStyle(hair, 1);
         g.fillCircle(headPos.x, headPos.y, headR);
-        // Face peeking out slightly
-        const faceOff = rot(r*0.18, -r*0.30);
+        // Face (tucked down, partially visible)
+        const facePos = rot(r*0.20, -r*0.36);
         g.fillStyle(skin, 1);
-        g.fillCircle(faceOff.x, faceOff.y, headR * 0.55);
-        // Neck
-        g.lineStyle(headR * 0.5, skin, 1);
-        g.beginPath(); g.moveTo(headPos.x, headPos.y); g.lineTo(shoulderPos.x, shoulderPos.y); g.strokePath();
+        g.fillCircle(facePos.x, facePos.y, headR * 0.6);
     }
 
     // ================================================================
@@ -1872,7 +1872,7 @@ class PlayScene extends Phaser.Scene {
                 if (d.crashed) {
                     this.promptText.setText(`${hs}\n${cs}\n\nCrashed into the camera!\nPress SPACE to retry`).setVisible(true).setColor('#ffaa66');
                 } else {
-                    this.promptText.setText(`${d.distFeet.toFixed(1)}ft from mark... going again!\n\nPress SPACE to retry`).setVisible(true).setColor('#cccccc');
+                    this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
             } else {
                 this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true).setColor('#aaaacc');
