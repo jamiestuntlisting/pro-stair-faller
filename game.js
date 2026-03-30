@@ -1556,24 +1556,34 @@ class PlayScene extends Phaser.Scene {
 
         if (pv.forearms > 0) {
             const fb = pv.forearms;
-            const fBumpR = H * (0.010 + fb * 0.007);
+            const fThick = H * (0.035 + fb * 0.012); // much thicker than normal forearm lines (0.022-0.024)
             const fColor = padShade(skin, 15);
-            g.fillStyle(fColor, 0.6);
-            // Back forearm
-            g.fillEllipse(x - H*0.09, y - H*0.48 + crouch, fBumpR, fBumpR * 1.5);
-            // Front forearm
-            g.fillEllipse(x + H*0.11 + lean, y - H*0.48 + crouch, fBumpR, fBumpR * 1.5);
+            // Back forearm pad — overlay on elbow-to-hand segment
+            g.lineStyle(fThick, fColor, 0.75);
+            g.beginPath();
+            g.moveTo(x - H*0.17, y - H*0.56 + crouch); g.lineTo(x - H*0.13, y - H*0.46 + crouch);
+            g.strokePath();
+            // Front forearm pad — overlay on elbow-to-hand segment
+            g.lineStyle(fThick, fColor, 0.75);
+            g.beginPath();
+            g.moveTo(x + H*0.19 + lean, y - H*0.56 + crouch); g.lineTo(x + H*0.16 + lean, y - H*0.46 + crouch);
+            g.strokePath();
         }
 
         if (pv.shins > 0) {
             const sb = pv.shins;
-            const sBumpR = H * (0.008 + sb * 0.006);
+            const sThick = H * (0.045 + sb * 0.014); // much thicker than normal shin lines (0.032)
             const sColor = padShade(pants, 16);
-            g.fillStyle(sColor, 0.65);
-            // Left shin
-            g.fillEllipse(footLX, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
-            // Right shin
-            g.fillEllipse(footRX, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
+            // Left shin pad — overlay on knee-to-foot segment
+            g.lineStyle(sThick, sColor, 0.7);
+            g.beginPath();
+            g.moveTo(kneeLX, kneeLY); g.lineTo(footLX, footY + 2);
+            g.strokePath();
+            // Right shin pad — overlay on knee-to-foot segment
+            g.lineStyle(sThick, sColor, 0.7);
+            g.beginPath();
+            g.moveTo(kneeRX, kneeRY); g.lineTo(footRX, footY + 2);
+            g.strokePath();
         }
 
         if (pv.butt > 0) {
