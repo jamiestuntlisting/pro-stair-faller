@@ -2007,7 +2007,110 @@ class PlayScene extends Phaser.Scene {
     updateStopped(time, dt) {
         this.stopTime += dt;
         this.drawPlayer(this.playerWorldX, this.playerWorldY - 2, 0);
-        if (this.crashTier > 0) { this.crashAnimTime += dt; this.drawCrewScene(this.crashTier, Math.min(this.crashAnimTime/2.5, 1)); }
+        if (this.crashTier > 0) {
+            this.crashAnimTime += dt;
+            this.drawCrewScene(this.crashTier, Math.min(this.crashAnimTime/2.5, 1));
+        } else if (this.scoreData && this.scoreData.isPerfect) {
+            // Crew celebrates on perfect score!
+            this.crashAnimTime = (this.crashAnimTime || 0) + dt;
+            this.drawCrewCelebration(this.crashAnimTime);
+        }
+    }
+
+    drawCrewCelebration(t) {
+        const g = this.crewGfx; g.clear();
+        const H = CONFIG.PERSON_HEIGHT;
+        const ld = this.levelData;
+        const cy = ld.endY;
+        const camX = ld.cameraX;
+
+        // Camera rig stays upright
+        this.drawCameraRig(g, camX, cy, 0, 0);
+
+        // Crew positions
+        const crew1X = camX + 80;
+        const crew2X = camX + 160;
+        const crew3X = camX + 240;
+
+        // All three crew members celebrating — arms up, bouncing
+        const bounce1 = Math.abs(Math.sin(t * 4)) * H * 0.04;
+        const bounce2 = Math.abs(Math.sin(t * 4 + 1)) * H * 0.04;
+        const bounce3 = Math.abs(Math.sin(t * 4 + 2)) * H * 0.04;
+
+        // Clapping hands animation
+        const clap1 = Math.sin(t * 8) > 0;
+        const clap2 = Math.sin(t * 8 + 1) > 0;
+        const clap3 = Math.sin(t * 8 + 2) > 0;
+
+        const style1 = { skin: 0x8d5524, hair: 0x0a0808 };
+        const style2 = { skin: 0xc68642, hair: 0x2a1a0a };
+        const style3 = { skin: 0xf5d0a9, hair: 0x3a2a1a };
+
+        this.drawCelebPerson(g, crew1X, cy - bounce1, 0x4a4a5a, t, clap1, style1);
+        this.drawCelebPerson(g, crew2X, cy - bounce2, 0x5a4a3a, t, clap2, style2);
+        this.drawCelebPerson(g, crew3X, cy - bounce3, 0x2a2a3a, t, clap3, style3);
+    }
+
+    drawCelebPerson(g, x, cy, clothCol, t, clapping, style) {
+        const H = CONFIG.PERSON_HEIGHT;
+        const skin = style.skin, hair = style.hair;
+        const hipY = cy - H*0.28, shY = cy - H*0.64;
+
+        // Legs
+        g.lineStyle(H*0.035, clothCol, 1);
+        g.beginPath();
+        g.moveTo(x - H*0.03, hipY); g.lineTo(x - H*0.04, cy);
+        g.moveTo(x + H*0.03, hipY); g.lineTo(x + H*0.04, cy);
+        g.strokePath();
+        // Shoes
+        g.fillStyle(0x1a1a1a, 1);
+        g.fillRect(x - H*0.06, cy - H*0.008, H*0.05, H*0.02);
+        g.fillRect(x + H*0.02, cy - H*0.008, H*0.05, H*0.02);
+        // Torso
+        g.lineStyle(H*0.10, clothCol, 1);
+        g.beginPath(); g.moveTo(x, hipY); g.lineTo(x, shY); g.strokePath();
+
+        // Arms — clapping above head!
+        const armAngle = clapping ? 0.3 : -0.3;
+        const lHandX = x - H*0.04 + armAngle * H*0.08;
+        const rHandX = x + H*0.04 - armAngle * H*0.08;
+        const handY = shY - H*0.20;
+        // Left arm up
+        g.lineStyle(H*0.026, clothCol, 1);
+        g.beginPath(); g.moveTo(x - H*0.08, shY); g.lineTo(lHandX, handY); g.strokePath();
+        g.lineStyle(H*0.022, skin, 1);
+        g.beginPath(); g.moveTo(lHandX, handY); g.lineTo(lHandX + H*0.02, handY - H*0.04); g.strokePath();
+        // Right arm up
+        g.lineStyle(H*0.026, clothCol, 1);
+        g.beginPath(); g.moveTo(x + H*0.08, shY); g.lineTo(rHandX, handY); g.strokePath();
+        g.lineStyle(H*0.022, skin, 1);
+        g.beginPath(); g.moveTo(rHandX, handY); g.lineTo(rHandX - H*0.02, handY - H*0.04); g.strokePath();
+        // Hands
+        g.fillStyle(skin, 1);
+        g.fillCircle(lHandX + H*0.02, handY - H*0.04, H*0.012);
+        g.fillCircle(rHandX - H*0.02, handY - H*0.04, H*0.012);
+
+        // Head
+        const headR = H*0.05;
+        const headY = shY - H*0.10;
+        g.fillStyle(skin, 1);
+        g.fillRect(x - H*0.014, shY - H*0.05, H*0.028, H*0.05);
+        g.fillStyle(hair, 1);
+        g.fillCircle(x, headY, headR);
+        g.fillStyle(skin, 1);
+        g.fillCircle(x, headY + headR*0.15, headR*0.82);
+        // Happy face — big smile!
+        g.fillStyle(0xffffff, 1);
+        g.fillCircle(x - headR*0.3, headY, headR*0.16);
+        g.fillCircle(x + headR*0.3, headY, headR*0.16);
+        g.fillStyle(0x222222, 1);
+        g.fillCircle(x - headR*0.28, headY - headR*0.02, headR*0.08);
+        g.fillCircle(x + headR*0.28, headY - headR*0.02, headR*0.08);
+        // Big smile
+        g.lineStyle(H*0.004, 0x995544, 0.8);
+        g.beginPath();
+        g.arc(x, headY + headR*0.25, headR*0.25, 0.2, Math.PI - 0.2);
+        g.strokePath();
     }
 }
 
