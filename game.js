@@ -135,9 +135,11 @@ function buildLevel(levelDef) {
 }
 
 function feetToStr(decimalFeet) {
-    const totalInches = Math.round(decimalFeet * 12);
-    const ft = Math.floor(totalInches / 12);
-    const inches = totalInches % 12;
+    let totalInches = Math.round(decimalFeet * 12);
+    let ft = Math.floor(totalInches / 12);
+    let inches = totalInches - ft * 12;
+    // Safety: if rounding gives 12 inches, bump to next foot
+    if (inches >= 12) { ft++; inches = 0; }
     if (ft === 0) return `${inches} inch${inches !== 1 ? 'es' : ''}`;
     if (inches === 0) return `${ft}'`;
     return `${ft}' ${inches}"`;
@@ -1866,7 +1868,8 @@ class PlayScene extends Phaser.Scene {
         this.meterTime += dt;
         // Oscillate between MIN_POWER_FLOOR and 1.0
         // Speed increases with level: L1=2.0 (slow), L12=5.0 (fast)
-        const levelSpeedMult = 2.0 + (this.currentLevel / 11) * 3.0;
+        // L1=1.2 (very slow), L3=1.8, L6=3.0, L12=5.0
+        const levelSpeedMult = 1.2 + (this.currentLevel / 11) * 3.8;
         const floor = CONFIG.MIN_POWER_FLOOR;
         const raw = 0.5 + 0.5 * Math.sin(this.meterTime * levelSpeedMult);
         this.meterValue = floor + raw * (1 - floor);
