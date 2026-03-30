@@ -94,7 +94,7 @@ const LEVELS = [
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
     // L5-6: Medium
     { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.62, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.78, greenW: 0.03, yellowExtra: 0.04 },
     // L7-8: Long staircases
     { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.03, yellowExtra: 0.03 },
@@ -1868,11 +1868,21 @@ class PlayScene extends Phaser.Scene {
         let ca = 0, edm = 1;
 
         // Touch zone detection: left half = brake, right half = boost
+        // Uses raw screen position so it works even outside the game canvas (portrait mode)
         let touchBrake = false, touchBoost = false;
         const pointer = this.input.activePointer;
         if (pointer && pointer.isDown) {
-            if (pointer.x < CONFIG.WIDTH / 2) { touchBrake = true; }
-            else { touchBoost = true; }
+            // Use raw screen position for full-screen touch zones
+            const rawX = pointer.event ? (pointer.event.clientX || pointer.event.touches?.[0]?.clientX) : null;
+            const screenMid = window.innerWidth / 2;
+            if (rawX != null) {
+                if (rawX < screenMid) { touchBrake = true; }
+                else { touchBoost = true; }
+            } else {
+                // Fallback to game coords
+                if (pointer.x < CONFIG.WIDTH / 2) { touchBrake = true; }
+                else { touchBoost = true; }
+            }
         }
 
         // Track tuck state for animation: -1=opening up (brake), 0=normal, 1=tucking tight (boost)
