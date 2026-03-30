@@ -88,25 +88,26 @@ const LOCATIONS = [
     { name: 'Cruise Ship', bg: 0x0a1420, floor: 0x5a6a7a, wall: 0x3a4a5a, stair: 0x6a7a8a },
 ];
 const LEVELS = [
-    // sweetSpot = optimal meter value (0-1), greenWidth = ±range for green, yellowExtra = extra ± for yellow
-    // L1-2: Tutorial — very few stairs, wide sweet spots
-    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.42, greenW: 0.12, yellowExtra: 0.10 },
-    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.48, greenW: 0.10, yellowExtra: 0.08 },
+    // sweetSpot = optimal meter value (0-1), greenW = ±range for green, yellowExtra = extra ± for yellow
+    // All sweet spots audited: need higher values because friction on flat eats velocity
+    // L1-2: Tutorial — wide sweet spots, slow meter
+    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.68, greenW: 0.10, yellowExtra: 0.08 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.65, greenW: 0.08, yellowExtra: 0.07 },
     // L3-4: Short staircases
-    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.52, greenW: 0.08, yellowExtra: 0.07 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.55, greenW: 0.08, yellowExtra: 0.07 },
+    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.64, greenW: 0.07, yellowExtra: 0.06 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.70, greenW: 0.07, yellowExtra: 0.06 },
     // L5-6: Medium — tighter zones
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.56, greenW: 0.06, yellowExtra: 0.06 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.50, greenW: 0.06, yellowExtra: 0.06 },
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.66, greenW: 0.06, yellowExtra: 0.05 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.62, greenW: 0.06, yellowExtra: 0.05 },
     // L7-8: Long staircases — narrow zones
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.58, greenW: 0.05, yellowExtra: 0.05 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.52, greenW: 0.05, yellowExtra: 0.05 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.05, yellowExtra: 0.05 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.05, yellowExtra: 0.04 },
     // L9-10: Very long — tight zones
-    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.60, greenW: 0.04, yellowExtra: 0.04 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.58, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme — very tight
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.54, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.60, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.03, yellowExtra: 0.03 },
 ];
 
 function buildLevel(levelDef) {
@@ -2060,7 +2061,7 @@ class PlayScene extends Phaser.Scene {
                     this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
             } else {
-                this.promptText.setText(`${hs}\n${cs}\n\nPress SPACE for next level`).setVisible(true).setColor('#aaaacc');
+                this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#aaaacc');
             }
         });
     }
@@ -2105,63 +2106,69 @@ class StoreScene extends Phaser.Scene {
 
     create() {
         this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT/2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x1a1a2a);
-        this.add.text(CONFIG.WIDTH/2, 40, 'PAD STORE', {
-            fontSize: '36px', fontFamily: 'Georgia, serif', color: '#ccccee',
-            stroke: '#000000', strokeThickness: 4,
+
+        // Scrollable container for the store items
+        const headerH = 120;
+        const footerH = 80;
+        const scrollH = CONFIG.HEIGHT - headerH - footerH;
+
+        // Header — fixed
+        this.add.text(CONFIG.WIDTH/2, 30, 'PAD STORE', {
+            fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
+            stroke: '#000000', strokeThickness: 5,
         }).setOrigin(0.5);
         this.add.text(CONFIG.WIDTH/2, 80, `Cash: $${this.currency}  |  Health: ${Math.round(this.health)}/${CONFIG.BASE_HEALTH}  |  Protection: ${this.protection}`, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#8888aa',
+            fontSize: '22px', fontFamily: 'Arial', color: '#8888aa',
         }).setOrigin(0.5);
 
-        let curY = 115;
-        const itemH = 58;
+        // Build items into a container for scrolling
+        const container = this.add.container(0, headerH);
+        let curY = 10;
+        const itemH = 100;
         let lastCategory = '';
         PADS.forEach((pad, i) => {
-            // Category header
             if (pad.category !== lastCategory) {
                 lastCategory = pad.category;
-                this.add.text(60, curY, pad.category.toUpperCase(), {
-                    fontSize: '11px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 2,
-                });
-                curY += 18;
+                container.add(this.add.text(40, curY, pad.category.toUpperCase(), {
+                    fontSize: '18px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 3,
+                }));
+                curY += 28;
             }
             const y = curY;
             const owned = this.ownedPads.includes(i);
             const canBuy = !owned && this.currency >= pad.cost;
 
-            // Background
-            const bg = this.add.rectangle(CONFIG.WIDTH/2, y + 25, CONFIG.WIDTH - 80, itemH - 8, owned ? 0x2a3a2a : 0x1e1e2e);
-            bg.setStrokeStyle(1, owned ? 0x44aa44 : 0x333355);
+            const bg = this.add.rectangle(CONFIG.WIDTH/2, y + itemH/2, CONFIG.WIDTH - 40, itemH - 8, owned ? 0x2a3a2a : 0x1e1e2e);
+            bg.setStrokeStyle(2, owned ? 0x44aa44 : 0x333355);
+            container.add(bg);
 
-            // Name and desc
-            this.add.text(60, y + 10, pad.name, {
-                fontSize: '18px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
-            });
-            this.add.text(60, y + 32, pad.desc, {
-                fontSize: '12px', fontFamily: 'Arial', color: '#666688',
-            });
+            container.add(this.add.text(50, y + 12, pad.name, {
+                fontSize: '26px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
+            }));
+            container.add(this.add.text(50, y + 44, pad.desc, {
+                fontSize: '18px', fontFamily: 'Arial', color: '#666688',
+            }));
 
-            // Protection
             const dmgReduction = (pad.protection * 0.3).toFixed(1);
-            this.add.text(CONFIG.WIDTH - 300, y + 8, `+${pad.protection} protection`, {
-                fontSize: '15px', fontFamily: 'Arial', color: '#88cc88',
-            });
-            this.add.text(CONFIG.WIDTH - 300, y + 28, `-${dmgReduction} damage/level`, {
-                fontSize: '11px', fontFamily: 'Arial', color: '#66aa66',
-            });
+            container.add(this.add.text(CONFIG.WIDTH - 350, y + 10, `+${pad.protection} protection`, {
+                fontSize: '22px', fontFamily: 'Arial', color: '#88cc88',
+            }));
+            container.add(this.add.text(CONFIG.WIDTH - 350, y + 40, `-${dmgReduction} damage/level`, {
+                fontSize: '16px', fontFamily: 'Arial', color: '#66aa66',
+            }));
 
-            // Buy button or status
             if (owned) {
-                this.add.text(CONFIG.WIDTH - 100, y + 18, 'OWNED', {
-                    fontSize: '16px', fontFamily: 'Arial', color: '#44aa44',
-                }).setOrigin(0.5);
+                container.add(this.add.text(CONFIG.WIDTH - 110, y + itemH/2 - 10, 'OWNED', {
+                    fontSize: '24px', fontFamily: 'Arial', color: '#44aa44',
+                }).setOrigin(0.5));
             } else {
                 const btnColor = canBuy ? 0x3a5a3a : 0x3a2a2a;
-                const btn = this.add.rectangle(CONFIG.WIDTH - 100, y + 22, 90, 30, btnColor);
-                btn.setStrokeStyle(1, canBuy ? 0x66cc66 : 0x664444);
-                const btnText = this.add.text(CONFIG.WIDTH - 100, y + 22, `$${pad.cost}`, {
-                    fontSize: '16px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444',
-                }).setOrigin(0.5);
+                const btn = this.add.rectangle(CONFIG.WIDTH - 110, y + itemH/2, 120, 50, btnColor);
+                btn.setStrokeStyle(2, canBuy ? 0x66cc66 : 0x664444);
+                container.add(btn);
+                container.add(this.add.text(CONFIG.WIDTH - 110, y + itemH/2, `$${pad.cost}`, {
+                    fontSize: '24px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444', fontStyle: 'bold',
+                }).setOrigin(0.5));
 
                 if (canBuy) {
                     btn.setInteractive({ useHandCursor: true });
@@ -2180,12 +2187,27 @@ class StoreScene extends Phaser.Scene {
             curY += itemH;
         });
 
-        // Continue button
-        const contBtn = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT - 40, 200, 40, 0x3a3a6a);
-        contBtn.setStrokeStyle(2, 0x6666cc);
+        // Enable scrolling via drag
+        const totalContentH = curY + 20;
+        const maxScroll = Math.max(0, totalContentH - scrollH);
+        this.input.on('pointermove', (pointer) => {
+            if (pointer.isDown && maxScroll > 0) {
+                container.y = Phaser.Math.Clamp(container.y + pointer.velocity.y * 0.02, headerH - maxScroll, headerH);
+            }
+        });
+        // Scroll wheel
+        this.input.on('wheel', (pointer, gameObjects, dx, dy) => {
+            if (maxScroll > 0) {
+                container.y = Phaser.Math.Clamp(container.y - dy * 0.5, headerH - maxScroll, headerH);
+            }
+        });
+
+        // Continue button — fixed at bottom
+        const contBtn = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT - 45, 300, 60, 0x3a3a6a);
+        contBtn.setStrokeStyle(3, 0x6666cc);
         contBtn.setInteractive({ useHandCursor: true });
-        this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 40, 'CONTINUE ▶', {
-            fontSize: '18px', fontFamily: 'Arial', color: '#aaaaff',
+        this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 45, 'CONTINUE ▶', {
+            fontSize: '28px', fontFamily: 'Arial', color: '#aaaaff', fontStyle: 'bold',
         }).setOrigin(0.5);
         contBtn.on('pointerdown', () => {
             this.scene.start('PlayScene', {
