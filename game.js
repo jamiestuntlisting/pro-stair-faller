@@ -1154,7 +1154,12 @@ class PlayScene extends Phaser.Scene {
         const g = this.playerGfx;
         g.clear();
         if (this.playerState === 'idle') this.drawStanding(g, x, y);
-        else if (this.playerState === 'stopped' || this.playerState === 'crashed') this.drawLying(g, x, y);
+        else if (this.playerState === 'stopped' || this.playerState === 'crashed') {
+            // Get slope angle at player position for body tilt
+            const seg = SEGMENTS[this.currentSegment];
+            const slopeAngle = seg ? seg.angle : 0;
+            this.drawLying(g, x, y, slopeAngle);
+        }
         else this.drawRolling(g, x, y, rotation);
     }
 
@@ -1296,7 +1301,8 @@ class PlayScene extends Phaser.Scene {
         g.strokePath();
     }
 
-    drawLying(g, x, y) {
+    drawLying(g, x, y, slopeAngle) {
+        slopeAngle = slopeAngle || 0;
         const c = this.costume || COSTUMES[0];
         const ps = this.playerSkin || { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x2a1a0a };
         const skin = ps.skin, skinDark = ps.skinDark;
@@ -1323,17 +1329,24 @@ class PlayScene extends Phaser.Scene {
             const p = getUpProg; // 0=flat on ground, 1=fully sitting
             const by = y - H*0.04;
 
-            // Torso angle: 0=flat (horizontal), 1=sitting (leaning back ~75°)
-            const torsoAngle = p * -1.2; // radians, negative = leaning back from horizontal
+            // Torso angle: starts at slope angle (lying on stairs), ends sitting upright
+            const torsoAngle = slopeAngle * (1 - p) + p * -1.2;
             const torsoLen = H * 0.22;
             const hipX = x - H*0.04;
             const hipY = by;
             const shoulderX = hipX + Math.cos(torsoAngle) * torsoLen;
             const shoulderY = hipY + Math.sin(torsoAngle) * torsoLen;
 
-            // Legs — from splayed flat to bent sitting
-            const legEndX = x - H*0.30 + p * H*0.50; // feet move from left to right
-            const legEndY = by + 3 - p * H*0.01;
+            // Legs — follow slope when flat, transition to bent when sitting
+            const legLen = H * 0.30;
+            // When flat: legs extend down the slope from hips
+            const flatLegX = hipX - Math.cos(slopeAngle) * legLen;
+            const flatLegY = hipY - Math.sin(slopeAngle) * legLen;
+            // When sitting: legs extend forward
+            const sitLegX = x + H*0.20;
+            const sitLegY = by + 3;
+            const legEndX = flatLegX + p * (sitLegX - flatLegX);
+            const legEndY = flatLegY + p * (sitLegY - flatLegY);
             g.lineStyle(H*0.04, pants, 1);
             g.beginPath(); g.moveTo(hipX, hipY); g.lineTo(legEndX, legEndY); g.strokePath();
             g.lineStyle(H*0.035, pantsDark, 1);
@@ -1902,7 +1915,7 @@ class PlayScene extends Phaser.Scene {
             const hs = `Health: ${Math.round(this.currentHealth)}/${CONFIG.BASE_HEALTH}  (-${Math.round(d.healthCost)})`;
             const cs = earned > 0 ? `+$${earned}  (Total: $${this.currency})` : `Total: $${this.currency}`;
             if (this.currentHealth <= 0) {
-                this.promptText.setText(`${hs}\n\nYou're too beat up to continue.\nMade it to Level ${this.currentLevel+1}\n\nPress SPACE to start over`).setVisible(true).setColor('#ff6666');
+                this.promptText.setText(`You're too beat up to continue.\nYou survived to Level ${this.currentLevel+1}.`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
                 if (d.crashed) {
                     this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#ffaa66');
