@@ -657,9 +657,10 @@ class PlayScene extends Phaser.Scene {
                         const bloodW = H * 0.12 * growFactor;
                         const bloodH = H * 0.04 * growFactor;
                         g.fillStyle(0x8b0000, 0.6);
-                        g.fillEllipse(koX, cy - H*0.01, bloodW, bloodH);
+                        const headCX = koX - H*0.17;
+                        g.fillEllipse(headCX, cy - H*0.01, bloodW, bloodH);
                         g.fillStyle(0x5a0000, 0.5);
-                        g.fillEllipse(koX, cy - H*0.01, bloodW * 0.5, bloodH * 0.6);
+                        g.fillEllipse(headCX, cy - H*0.01, bloodW * 0.5, bloodH * 0.6);
                     }
                     // Knocked out — lying face down (drawn ON TOP of blood)
                     g.lineStyle(H*0.035, 0x4a4a5a, 1);
@@ -696,13 +697,14 @@ class PlayScene extends Phaser.Scene {
                 if (impactT < 0.3) {
                     this.drawCrewPerson(g, crew2X + impactT * 80, cy, 0x5a4a3a, false, false, 0, 2, 0, 'standing', style2);
                 } else {
-                    // Crawling phase: t=0.3 to t=1.5, then collapse
+                    // Crawling phase: crawl → stop + vomit → collapse
                     const crawlTime = Math.max(0, t - 0.5);
-                    const collapsed = crawlTime > 4.0;
-                    const crawlDist = Math.min(crawlTime, 4.0) * H * 0.20;
+                    const vomiting = crawlTime > 3.5 && crawlTime <= 5.0;
+                    const collapsed = crawlTime > 5.0;
+                    const crawlDist = Math.min(crawlTime, 3.5) * H * 0.20;
                     const crawlX = crew2X + 100 + crawlDist;
-                    const bob = collapsed ? 0 : Math.sin(t * 7) * 5;
-                    const limb = collapsed ? 0 : Math.sin(t * 5);
+                    const bob = (collapsed || vomiting) ? 0 : Math.sin(t * 7) * 5;
+                    const limb = (collapsed || vomiting) ? 0 : Math.sin(t * 5);
 
                     if (collapsed) {
                         // Face down on ground — head stays on RIGHT (same as crawl direction)
@@ -731,6 +733,46 @@ class PlayScene extends Phaser.Scene {
                         g.fillCircle(lieX + H*0.22, cy - H*0.03, H*0.045);
                         g.fillStyle(0xd4a87c, 0.5);
                         g.fillCircle(lieX + H*0.23, cy - H*0.01, H*0.03);
+                    } else if (vomiting) {
+                        // Stopped crawling, throwing up
+                        const vomitProg = (crawlTime - 3.5) / 1.5; // 0 to 1
+                        const torsoY = cy - H*0.16;
+                        const heaveOff = Math.sin(vomitProg * Math.PI * 4) * H*0.02; // heaving motion
+                        // Torso — on all fours, head drooping
+                        g.lineStyle(H*0.08, 0x5a4a3a, 1);
+                        g.beginPath(); g.moveTo(crawlX - H*0.14, torsoY); g.lineTo(crawlX + H*0.14, torsoY + heaveOff); g.strokePath();
+                        // Legs
+                        g.lineStyle(H*0.04, 0x5a4a3a, 1);
+                        g.beginPath();
+                        g.moveTo(crawlX - H*0.14, torsoY); g.lineTo(crawlX - H*0.20, cy);
+                        g.moveTo(crawlX - H*0.08, torsoY); g.lineTo(crawlX - H*0.14, cy);
+                        g.strokePath();
+                        // Arms bracing
+                        g.lineStyle(H*0.03, 0xd4a87c, 1);
+                        g.beginPath();
+                        g.moveTo(crawlX + H*0.12, torsoY + heaveOff); g.lineTo(crawlX + H*0.18, cy);
+                        g.moveTo(crawlX + H*0.08, torsoY + heaveOff); g.lineTo(crawlX + H*0.14, cy);
+                        g.strokePath();
+                        // Head drooping down
+                        const hx = crawlX + H*0.19, hy = torsoY + H*0.02 + heaveOff;
+                        g.fillStyle(0x3a2a1a, 1);
+                        g.fillCircle(hx, hy, H*0.045);
+                        g.fillStyle(0xd4a87c, 1);
+                        g.fillCircle(hx + H*0.005, hy + H*0.015, H*0.035);
+                        // Vomit puddle growing on the ground
+                        if (vomitProg > 0.2) {
+                            const vSize = (vomitProg - 0.2) * H * 0.10;
+                            g.fillStyle(0x8a9a2a, 0.7);
+                            g.fillEllipse(hx + H*0.02, cy + H*0.01, vSize, vSize * 0.4);
+                            g.fillStyle(0x6a7a1a, 0.5);
+                            g.fillEllipse(hx + H*0.02, cy + H*0.01, vSize * 0.5, vSize * 0.25);
+                        }
+                        // Vomit stream from mouth
+                        if (vomitProg > 0.1 && vomitProg < 0.8) {
+                            const streamLen = H * 0.06 * Math.sin(vomitProg * Math.PI);
+                            g.lineStyle(H*0.012, 0x8a9a2a, 0.8);
+                            g.beginPath(); g.moveTo(hx + H*0.02, hy + H*0.03); g.lineTo(hx + H*0.02, hy + H*0.03 + streamLen); g.strokePath();
+                        }
                     } else {
                         // Crawling on all fours — FULL SIZE
                         const torsoY = cy - H*0.16 + bob;
@@ -1939,7 +1981,7 @@ class PlayScene extends Phaser.Scene {
                 this.promptText.setText(`You're too beat up to continue.\nYou survived to Level ${this.currentLevel+1}.`).setVisible(true).setColor('#ff6666');
             } else if (failed) {
                 if (d.crashed) {
-                    this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#ffaa66');
+                    this.promptText.setText(`${hs}`).setVisible(true).setColor('#ffaa66');
                 } else {
                     this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
