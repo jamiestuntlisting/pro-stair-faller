@@ -2148,12 +2148,13 @@ class StoreScene extends Phaser.Scene {
             }
         });
 
-        // Continue button — fixed at bottom
-        const contBtn = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT - 45, 300, 60, 0x3a3a6a);
+        // "Let's Roll" button — near bottom but safely visible in landscape
+        const btnY = Math.min(CONFIG.HEIGHT - 35, curY + headerH + 30);
+        const contBtn = this.add.rectangle(CONFIG.WIDTH/2, btnY, 360, 55, 0x3a3a6a);
         contBtn.setStrokeStyle(3, 0x6666cc);
         contBtn.setInteractive({ useHandCursor: true });
-        this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 45, 'CONTINUE ▶', {
-            fontSize: '28px', fontFamily: 'Arial', color: '#aaaaff', fontStyle: 'bold',
+        this.add.text(CONFIG.WIDTH/2, btnY, "LET'S ROLL BABY!", {
+            fontSize: '26px', fontFamily: 'Arial', color: '#aaaaff', fontStyle: 'bold',
         }).setOrigin(0.5);
         contBtn.on('pointerdown', () => {
             this.scene.start('PlayScene', {
