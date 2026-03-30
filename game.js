@@ -73,9 +73,9 @@ const CONFIG = {
     MAX_ENERGY_DRAIN_RATE: 0.55,
     SLOPE_DRAIN_REDUCTION: 0.6,
     BOOST_ACCEL: 200,
-    BOOST_ENERGY_MULT: 1.4,
+    BOOST_ENERGY_MULT: 1.05,
     BRAKE_ACCEL: -150,
-    BRAKE_ENERGY_MULT: 0.6,
+    BRAKE_ENERGY_MULT: 0.95,
     PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
 
@@ -166,8 +166,8 @@ const LEVELS = [
     { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.75, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
     // L13+: EXTREME — unrealistic, creative, very steep
-    { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Stairway to Hell', angleDeg: 70, numSteps: 60, flatLength: 2500, markOffset: 1500, sweetSpot: 0.75, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Stairway to Hell', angleDeg: 70, numSteps: 60, flatLength: 2500, markOffset: 1500, sweetSpot: 0.90, greenW: 0.03, yellowExtra: 0.03 },
     { name: 'Skyscraper', angleDeg: 30, numSteps: 200, flatLength: 3000, markOffset: 1800, sweetSpot: 0.96, greenW: 0.03, yellowExtra: 0.03 },
     { name: 'The Waterfall', angleDeg: 75, numSteps: 80, flatLength: 3000, markOffset: 2000, sweetSpot: 0.50, greenW: 0.02, yellowExtra: 0.03 },
     { name: 'Mount Doom', angleDeg: 60, numSteps: 120, flatLength: 2500, markOffset: 1600, sweetSpot: 0.65, greenW: 0.02, yellowExtra: 0.03 },
