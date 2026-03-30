@@ -112,7 +112,7 @@ const LEVELS = [
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.05, yellowExtra: 0.05 },
     // L7-8: Long staircases
     { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.89, greenW: 0.04, yellowExtra: 0.05 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.82, greenW: 0.04, yellowExtra: 0.05 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
     { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.84, greenW: 0.04, yellowExtra: 0.04 },
@@ -1296,46 +1296,55 @@ class PlayScene extends Phaser.Scene {
         const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const headR = H * 0.058;
 
-        // === READY STANCE — knees bent, arms out, facing right ===
-        // Body is ~10% lower due to bent knees
+        // === READY STANCE — feet planted, upper body sways ===
         const crouch = H * 0.10;
-        // Slight torso rotation toward right (facing roll direction)
-        const lean = H * 0.02;
+        const sway = this.bodySway || 0; // upper body sway (feet stay planted)
+        const lean = H * 0.02 + sway; // torso shifts with sway
 
-        // Wider foot spread for athletic stance
-        const footSpreadL = H * 0.08;
-        const footSpreadR = H * 0.07;
+        // Feet positions — FIXED, never move
+        const footLX = x - H * 0.06;
+        const footRX = x + H * 0.06;
+        const footY = y;
 
-        // Shadow (wider due to stance)
+        // Hip position — moves with sway
+        const hipX = x + lean;
+        const hipY = y - H*0.42 + crouch;
+
+        // Knee positions — always FORWARD (toward right/positive X) of the hip-foot line
+        const kneeLX = footLX + H*0.02; // knee slightly forward of foot
+        const kneeLY = y - H*0.20 + crouch*0.3;
+        const kneeRX = footRX + H*0.02; // knee slightly forward of foot
+        const kneeRY = y - H*0.20 + crouch*0.3;
+
+        // Shadow
         g.fillStyle(0x000000, 0.2);
-        g.fillEllipse(x + lean, y + 4, H * 0.16, H * 0.02);
+        g.fillEllipse(x, y + 4, H * 0.16, H * 0.02);
 
-        // Shoes
+        // Shoes — planted
         g.fillStyle(shoe, 1);
-        g.fillRect(x - footSpreadL - H*0.02, y - H*0.01, H*0.06, H*0.03);
-        g.fillRect(x + footSpreadR - H*0.02, y - H*0.01, H*0.06, H*0.03);
-        // Shoe soles
+        g.fillRect(footLX - H*0.02, footY - H*0.01, H*0.06, H*0.03);
+        g.fillRect(footRX - H*0.02, footY - H*0.01, H*0.06, H*0.03);
         g.fillStyle(0x333333, 1);
-        g.fillRect(x - footSpreadL - H*0.02, y + H*0.015, H*0.06, H*0.008);
-        g.fillRect(x + footSpreadR - H*0.02, y + H*0.015, H*0.06, H*0.008);
+        g.fillRect(footLX - H*0.02, footY + H*0.015, H*0.06, H*0.008);
+        g.fillRect(footRX - H*0.02, footY + H*0.015, H*0.06, H*0.008);
 
-        // Legs — left (back) — bent knee angled outward
+        // Legs — left (back): hip → knee → foot. Knee always forward.
         g.lineStyle(H*0.038, pantsDark, 1);
         g.beginPath();
-        g.moveTo(x - H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3);
+        g.moveTo(hipX - H*0.02, hipY); g.lineTo(kneeLX, kneeLY);
         g.strokePath();
         g.lineStyle(H*0.032, pantsDark, 1);
         g.beginPath();
-        g.moveTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x - footSpreadL, y + 2);
+        g.moveTo(kneeLX, kneeLY); g.lineTo(footLX, footY + 2);
         g.strokePath();
-        // Legs — right (front) — bent knee angled outward
+        // Legs — right (front): hip → knee → foot. Knee always forward.
         g.lineStyle(H*0.038, pants, 1);
         g.beginPath();
-        g.moveTo(x + H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3);
+        g.moveTo(hipX + H*0.02, hipY); g.lineTo(kneeRX, kneeRY);
         g.strokePath();
         g.lineStyle(H*0.032, pants, 1);
         g.beginPath();
-        g.moveTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x + footSpreadR, y + 2);
+        g.moveTo(kneeRX, kneeRY); g.lineTo(footRX, footY + 2);
         g.strokePath();
 
         // Belt
@@ -1469,14 +1478,14 @@ class PlayScene extends Phaser.Scene {
             // Puffy upper legs
             g.lineStyle(H*0.052, padShade(pants, 12), 0.35);
             g.beginPath();
-            g.moveTo(x - H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3);
-            g.moveTo(x + H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3);
+            g.moveTo(x - H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(footLX - H*0.01, y - H*0.18 + crouch*0.3);
+            g.moveTo(x + H*0.02 + lean, y - H*0.42 + crouch); g.lineTo(footRX + H*0.01, y - H*0.18 + crouch*0.3);
             g.strokePath();
             // Puffy lower legs
             g.lineStyle(H*0.045, padShade(pants, 12), 0.35);
             g.beginPath();
-            g.moveTo(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x - footSpreadL, y + 2);
-            g.moveTo(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(x + footSpreadR, y + 2);
+            g.moveTo(footLX - H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(footLX, y + 2);
+            g.moveTo(footRX + H*0.01, y - H*0.18 + crouch*0.3); g.lineTo(footRX, y + 2);
             g.strokePath();
             // Puffy arms
             g.lineStyle(H*0.042, padShade(shirt, 15), 0.35);
@@ -1493,9 +1502,9 @@ class PlayScene extends Phaser.Scene {
             const kneeColor = padShade(pants, 18);
             g.fillStyle(kneeColor, 0.7);
             // Left knee
-            g.fillCircle(x - footSpreadL - H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
+            g.fillCircle(footLX - H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
             // Right knee
-            g.fillCircle(x + footSpreadR + H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
+            g.fillCircle(footRX + H*0.01, y - H*0.18 + crouch*0.3, kneeBumpR);
         }
 
         if (pv.elbows > 0) {
@@ -1550,9 +1559,9 @@ class PlayScene extends Phaser.Scene {
             const sColor = padShade(pants, 16);
             g.fillStyle(sColor, 0.65);
             // Left shin
-            g.fillEllipse(x - footSpreadL, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
+            g.fillEllipse(footLX, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
             // Right shin
-            g.fillEllipse(x + footSpreadR, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
+            g.fillEllipse(footRX, y - H*0.10 + crouch*0.5, sBumpR, H*0.04);
         }
 
         if (pv.butt > 0) {
@@ -2051,8 +2060,8 @@ class PlayScene extends Phaser.Scene {
         const raw = 0.5 + 0.5 * Math.sin(this.meterTime * levelSpeedMult);
         this.meterValue = floor + raw * (1 - floor);
         this.bounceTime += dt;
-        const bx = Math.sin(this.bounceTime * 2.5) * 4;
-        this.drawPlayer(SEGMENTS[0].startX + bx, SEGMENTS[0].startY - 2, 0);
+        this.bodySway = Math.sin(this.bounceTime * 2.5) * 6; // passed to drawStanding for upper body only
+        this.drawPlayer(SEGMENTS[0].startX, SEGMENTS[0].startY - 2, 0);
     }
 
     updateRolling(time, dt) {
