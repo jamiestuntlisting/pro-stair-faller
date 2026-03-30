@@ -314,7 +314,7 @@ class PlayScene extends Phaser.Scene {
             const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5);
             const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection, skinTone: this.skinTone };
             if (this.currentHealth <= 0) {
-                this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0 });
+                this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0, skinTone: this.skinTone });
             } else if (failed) {
                 // Retry same level — increment take number, keep skin tone
                 this.scene.start('PlayScene', { ...passData, level: this.currentLevel, takeNumber: this.takeNumber + 1 });
@@ -1941,6 +1941,7 @@ class StoreScene extends Phaser.Scene {
         this.currency = data.currency;
         this.ownedPads = data.ownedPads || [];
         this.protection = data.protection || 0;
+        this.skinTone = data.skinTone;
     }
 
     create() {
@@ -2031,7 +2032,7 @@ class StoreScene extends Phaser.Scene {
             this.scene.start('PlayScene', {
                 health: this.health, level: this.level,
                 currency: this.currency, ownedPads: this.ownedPads,
-                protection: this.protection
+                protection: this.protection, skinTone: this.skinTone
             });
         });
 
@@ -2040,7 +2041,7 @@ class StoreScene extends Phaser.Scene {
             this.scene.start('PlayScene', {
                 health: this.health, level: this.level,
                 currency: this.currency, ownedPads: this.ownedPads,
-                protection: this.protection
+                protection: this.protection, skinTone: this.skinTone
             });
         });
     }
