@@ -6,6 +6,52 @@ window.onerror = function(msg, url, line, col, err) {
     console.error('STARFALL ERROR line ' + line + ': ' + msg);
 };
 
+// === Sound effects via Web Audio API ===
+let _audioCtx = null;
+function getAudioCtx() {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    return _audioCtx;
+}
+function playCrashThump(tier) {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    // Big low thump — pitch and volume scale with crash tier
+    const baseFreq = 60 - tier * 5;  // lower = worse crash
+    const duration = 0.3 + tier * 0.1;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.8 + tier * 0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    // Low thump oscillator
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + duration);
+    osc.connect(gain);
+    osc.start(now);
+    osc.stop(now + duration);
+    // Noise burst for the "splat" — short crackle
+    const bufSize = ctx.sampleRate * 0.15;
+    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseGain = ctx.createGain();
+    noiseGain.connect(ctx.destination);
+    noiseGain.gain.setValueAtTime(0.4 + tier * 0.08, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    // Low-pass filter to make it thuddy not hissy
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 400 + tier * 100;
+    noise.connect(lpf);
+    lpf.connect(noiseGain);
+    noise.start(now);
+    noise.stop(now + 0.15);
+}
+
 const CONFIG = {
     WIDTH: 1280,
     HEIGHT: 720,
@@ -27,9 +73,9 @@ const CONFIG = {
     MAX_ENERGY_DRAIN_RATE: 0.55,
     SLOPE_DRAIN_REDUCTION: 0.6,
     BOOST_ACCEL: 200,
-    BOOST_ENERGY_MULT: 0.6,
+    BOOST_ENERGY_MULT: 1.4,
     BRAKE_ACCEL: -150,
-    BRAKE_ENERGY_MULT: 1.4,
+    BRAKE_ENERGY_MULT: 0.6,
     PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
 
@@ -111,11 +157,11 @@ const LEVELS = [
     { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.88, greenW: 0.05, yellowExtra: 0.05 },
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.05, yellowExtra: 0.05 },
     // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.89, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.87, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.82, greenW: 0.04, yellowExtra: 0.05 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.78, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.76, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme
     { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.78, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
@@ -2202,6 +2248,7 @@ class PlayScene extends Phaser.Scene {
         const th = CONFIG.CRASH_TIER_THRESHOLDS;
         let tier = 1; for (let i = th.length-1; i >= 0; i--) { if (opx >= th[i]) { tier = i+1; break; } }
         tier = Math.min(tier, 5); this.crashTier = tier; this.crashAnimTime = 0;
+        playCrashThump(tier);
         const chc = CONFIG.CRASH_TIER_HEALTH_COSTS[tier-1];
         const sp = CONFIG.CRASH_TIER_SCORE_PENALTIES[tier-1];
         const rawHc = CONFIG.LEVEL_BASE_COST + (dm+sp) * CONFIG.ACCURACY_COST_MULT + chc;
