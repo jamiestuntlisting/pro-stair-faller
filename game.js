@@ -1691,18 +1691,17 @@ class PlayScene extends Phaser.Scene {
         // === BARREL ROLL — smooth rounded back with visible limbs ===
         // Tuck factor: 0=normal, 1=tight (boost), -1=open (brake)
         const tk = this.rollTuck || 0;
-        // When tucking tight (tk=1): limbs pull closer to center
-        // When opening up (tk=-1): limbs spread out, knees drop, head lifts
-        const spread = tk * r * 0.12; // how much limbs shift
+        // Big visual change: tight=cannonball, open=starfish-ish
+        const s = tk * r * 0.35;
 
-        // KEY BODY POSITIONS — adjusted by tuck state
-        const hipPos      = rot(0, r*0.38 + spread*0.3);
-        const kneePos     = rot(r*0.30 + spread, -r*0.05 + spread*0.5);
-        const footPos     = rot(r*0.12 + spread*0.8, -r*0.35 + spread*0.4);
-        const headPos     = rot(r*0.08 + spread*0.3, -r*0.42 - spread*0.3);
-        const shoulderPos = rot(-r*0.18, -r*0.35);
-        const elbowPos    = rot(r*0.15 + spread*0.5, r*0.10 + spread*0.3);
-        const handPos     = rot(r*0.25 + spread*0.6, -r*0.12 + spread*0.4);
+        // KEY BODY POSITIONS — dramatically adjusted by tuck state
+        const hipPos      = rot(0, r*0.38 + s*0.4);
+        const kneePos     = rot(r*0.30 + s*1.2, -r*0.05 + s*0.8);    // knees swing way out when open
+        const footPos     = rot(r*0.12 + s*1.0, -r*0.35 + s*0.7);    // feet extend when open
+        const headPos     = rot(r*0.08 + s*0.4, -r*0.42 - s*0.5);    // head lifts when open
+        const shoulderPos = rot(-r*0.18 - s*0.2, -r*0.35);
+        const elbowPos    = rot(r*0.15 + s*0.8, r*0.10 + s*0.5);     // elbows flare out
+        const handPos     = rot(r*0.25 + s*0.9, -r*0.12 + s*0.6);
 
         // --- 1. BACK — 5 circles forming a CURVED arc (bulges out in middle) ---
         g.fillStyle(shirt, 1);
