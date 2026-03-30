@@ -312,7 +312,7 @@ class PlayScene extends Phaser.Scene {
             return;
         } else if ((this.playerState === 'stopped' || this.playerState === 'crashed') && this.showingScore) {
             // Check fail conditions: crashed or >5ft from mark = must retry
-            const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5);
+            const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5.1);
             const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender };
             if (this.currentHealth <= 0) {
                 this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0, skinTone: this.skinTone, playerGender: this.playerGender });
@@ -1669,15 +1669,20 @@ class PlayScene extends Phaser.Scene {
         g.fillEllipse(x, y + r + 4, r * 0.8, 6);
 
         // === BARREL ROLL — smooth rounded back with visible limbs ===
+        // Tuck factor: 0=normal, 1=tight (boost), -1=open (brake)
+        const tk = this.rollTuck || 0;
+        // When tucking tight (tk=1): limbs pull closer to center
+        // When opening up (tk=-1): limbs spread out, knees drop, head lifts
+        const spread = tk * r * 0.12; // how much limbs shift
 
-        // KEY BODY POSITIONS — back curves out wide, limbs tuck in front
-        const hipPos      = rot(0, r*0.38);          // bottom — butt/hip
-        const kneePos     = rot(r*0.30, -r*0.05);    // knees pulled UP toward chest
-        const footPos     = rot(r*0.12, -r*0.35);    // feet near head
-        const headPos     = rot(r*0.08, -r*0.42);    // head at top, tucked
-        const shoulderPos = rot(-r*0.18, -r*0.35);   // upper back/shoulder
-        const elbowPos    = rot(r*0.15, r*0.10);     // elbow near knee
-        const handPos     = rot(r*0.25, -r*0.12);    // hands clasping shins
+        // KEY BODY POSITIONS — adjusted by tuck state
+        const hipPos      = rot(0, r*0.38 + spread*0.3);
+        const kneePos     = rot(r*0.30 + spread, -r*0.05 + spread*0.5);
+        const footPos     = rot(r*0.12 + spread*0.8, -r*0.35 + spread*0.4);
+        const headPos     = rot(r*0.08 + spread*0.3, -r*0.42 - spread*0.3);
+        const shoulderPos = rot(-r*0.18, -r*0.35);
+        const elbowPos    = rot(r*0.15 + spread*0.5, r*0.10 + spread*0.3);
+        const handPos     = rot(r*0.25 + spread*0.6, -r*0.12 + spread*0.4);
 
         // --- 1. BACK — 5 circles forming a CURVED arc (bulges out in middle) ---
         g.fillStyle(shirt, 1);
@@ -1866,8 +1871,10 @@ class PlayScene extends Phaser.Scene {
             else { touchBoost = true; }
         }
 
-        if (this.cursors.right.isDown || touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
-        else if (this.cursors.left.isDown || touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
+        // Track tuck state for animation: -1=opening up (brake), 0=normal, 1=tucking tight (boost)
+        this.rollTuck = 0;
+        if (this.cursors.right.isDown || touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; this.rollTuck = 1; }
+        else if (this.cursors.left.isDown || touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; this.rollTuck = -1; }
 
         this.playerVelocity = Math.max(0, this.playerVelocity + (gravity - friction + ca) * dt);
         this.playerEnergy = Math.max(0, this.playerEnergy - CONFIG.MAX_ENERGY_DRAIN_RATE * this.playerMaxEnergy * (1 - sinA * CONFIG.SLOPE_DRAIN_REDUCTION) * edm * dt);
@@ -1960,8 +1967,10 @@ class PlayScene extends Phaser.Scene {
 
     showScore() {
         const d = this.scoreData;
-        const failed = d.crashed || d.distFeet > 5;
-        const baseEarned = failed ? 0 : (d.isPerfect ? 100 : Math.max(0, Math.round(100 - d.distFeet * 2.5)));
+        const failed = d.crashed || d.distFeet > 5.1;
+        // Higher levels pay more — base scales with level number
+        const levelPay = 100 + this.currentLevel * 25; // L1=100, L5=200, L12=400
+        const baseEarned = failed ? 0 : (d.isPerfect ? levelPay : Math.max(0, Math.round(levelPay - d.distFeet * 2.5)));
         const earned = d.isPerfect ? baseEarned * 2 : baseEarned;
         this.currency += earned;
         this.showingScore = false;
@@ -2003,17 +2012,17 @@ class PlayScene extends Phaser.Scene {
 // ============================================================
 const PADS = [
     // Knees & Elbows
-    { name: 'Foam Knee Pads', cost: 50, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
-    { name: 'Hard Shell Knee', cost: 150, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
-    { name: 'Elbow Guards', cost: 75, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
+    { name: 'Foam Knee Pads', cost: 25, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
+    { name: 'Hard Shell Knee', cost: 80, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
+    { name: 'Elbow Guards', cost: 35, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
     // Back & Core
-    { name: 'D3O Hip Pads', cost: 120, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
-    { name: 'Spine Protector', cost: 200, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    { name: 'D3O Hip Pads', cost: 60, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
+    { name: 'Spine Protector', cost: 120, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
     // Head
-    { name: 'Wig w/ Hidden Pads', cost: 100, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
+    { name: 'Wig w/ Hidden Pads', cost: 50, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
     // Specialty
     { name: 'Newspaper & Tape', cost: 2, protection: 1, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
-    { name: 'Full Body Suit', cost: 350, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
+    { name: 'Full Body Suit', cost: 200, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
 ];
 
 class StoreScene extends Phaser.Scene {
