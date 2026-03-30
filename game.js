@@ -88,24 +88,25 @@ const LOCATIONS = [
     { name: 'Cruise Ship', bg: 0x0a1420, floor: 0x5a6a7a, wall: 0x3a4a5a, stair: 0x6a7a8a },
 ];
 const LEVELS = [
-    // L1-2: Tutorial — very few stairs
-    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300 },
-    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400 },
+    // sweetSpot = optimal meter value (0-1), greenWidth = ±range for green, yellowExtra = extra ± for yellow
+    // L1-2: Tutorial — very few stairs, wide sweet spots
+    { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.42, greenW: 0.12, yellowExtra: 0.10 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.48, greenW: 0.10, yellowExtra: 0.08 },
     // L3-4: Short staircases
-    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500 },
-    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500 },
-    // L5-6: Medium — stairs get longer
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750 },
-    // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620 },
-    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900 },
-    // L9-10: Very long
-    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000 },
-    // L11-12: Extreme
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950 },
-    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100 },
+    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.52, greenW: 0.08, yellowExtra: 0.07 },
+    { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.55, greenW: 0.08, yellowExtra: 0.07 },
+    // L5-6: Medium — tighter zones
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.56, greenW: 0.06, yellowExtra: 0.06 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.50, greenW: 0.06, yellowExtra: 0.06 },
+    // L7-8: Long staircases — narrow zones
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.58, greenW: 0.05, yellowExtra: 0.05 },
+    { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.52, greenW: 0.05, yellowExtra: 0.05 },
+    // L9-10: Very long — tight zones
+    { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.60, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.58, greenW: 0.04, yellowExtra: 0.04 },
+    // L11-12: Extreme — very tight
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.54, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.60, greenW: 0.03, yellowExtra: 0.03 },
 ];
 
 function buildLevel(levelDef) {
@@ -133,7 +134,7 @@ function buildLevel(levelDef) {
         { type: 'flat', startX: endX, startY: endY, endX: flatEndX, endY: endY, angle: 0, length: levelDef.flatLength },
     ];
 
-    return { segments, steps, stepW, stepH, markX, cameraX, flatEndX, angleDeg: levelDef.angleDeg, name: levelDef.name, startX, startY, endX, endY };
+    return { segments, steps, stepW, stepH, markX, cameraX, flatEndX, angleDeg: levelDef.angleDeg, name: levelDef.name, startX, startY, endX, endY, sweetSpot: levelDef.sweetSpot || 0.5, greenW: levelDef.greenW || 0.08, yellowExtra: levelDef.yellowExtra || 0.06 };
 }
 
 let SEGMENTS = buildLevel(LEVELS[0]).segments;
@@ -274,10 +275,35 @@ class PlayScene extends Phaser.Scene {
             fontSize: '20px', fontFamily: 'Arial', color: '#aaaacc',
             stroke: '#000000', strokeThickness: 3, align: 'center',
         }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
-        this.hintText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 30, 'Press SPACE to set power', {
+        this.hintText = this.add.text(CONFIG.WIDTH / 2, CONFIG.HEIGHT - 30, 'Tap or press SPACE', {
             fontSize: '15px', fontFamily: 'Arial', color: '#555577',
             stroke: '#000000', strokeThickness: 2,
         }).setOrigin(0.5).setScrollFactor(0);
+
+        // Mobile touch controls — on-screen buttons during rolling
+        this.touchBrake = false;
+        this.touchBoost = false;
+        this.touchJump = false;
+        const btnSize = 60, btnY = CONFIG.HEIGHT - 50, btnAlpha = 0.3;
+        // Left button (brake)
+        this.btnLeft = this.add.circle(70, btnY, btnSize/2, 0x4444aa, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
+        this.add.text(70, btnY, '◀', { fontSize: '24px', color: '#aaaaff' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnLeftTxt');
+        // Right button (boost)
+        this.btnRight = this.add.circle(170, btnY, btnSize/2, 0x44aa44, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
+        this.add.text(170, btnY, '▶', { fontSize: '24px', color: '#aaffaa' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnRightTxt');
+        // Jump button (right side)
+        this.btnJump = this.add.circle(CONFIG.WIDTH - 70, btnY, btnSize/2, 0xaa4444, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
+        this.add.text(CONFIG.WIDTH - 70, btnY, '▲', { fontSize: '24px', color: '#ffaaaa' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnJumpTxt');
+
+        this.btnLeft.on('pointerdown', () => { this.touchBrake = true; });
+        this.btnLeft.on('pointerup', () => { this.touchBrake = false; });
+        this.btnLeft.on('pointerout', () => { this.touchBrake = false; });
+        this.btnRight.on('pointerdown', () => { this.touchBoost = true; });
+        this.btnRight.on('pointerup', () => { this.touchBoost = false; });
+        this.btnRight.on('pointerout', () => { this.touchBoost = false; });
+        this.btnJump.on('pointerdown', () => { this.touchJump = true; });
+        this.btnJump.on('pointerup', () => { this.touchJump = false; });
+        this.btnJump.on('pointerout', () => { this.touchJump = false; });
 
         this.bounceTime = 0;
 
@@ -341,6 +367,8 @@ class PlayScene extends Phaser.Scene {
         this.playerState = 'rolling';
         this.lastJumpTime = this.time.now + 500; // prevent spacebar from triggering jump on launch
         this.hintText.setVisible(false);
+        // Show mobile touch buttons
+        this.showTouchButtons(true);
     }
 
     // ================================================================
@@ -1744,6 +1772,21 @@ class PlayScene extends Phaser.Scene {
         // Meter extends from top to near bottom of screen
         const mx = 30, my = 85, mw = 28, mh = CONFIG.HEIGHT - 95;
         g.fillStyle(0x1a1a28, 0.9); g.fillRect(mx, my, mw, mh);
+
+        // --- SWEET SPOT ZONES (behind the fill) ---
+        const ld = this.levelData;
+        const spot = ld.sweetSpot;
+        const gw = ld.greenW;
+        const yw = ld.yellowExtra;
+        // Yellow zone (wider, behind green)
+        const yTop = my + mh * (1 - Math.min(1, spot + gw + yw));
+        const yBot = my + mh * (1 - Math.max(0, spot - gw - yw));
+        g.fillStyle(0xcccc22, 0.20); g.fillRect(mx+2, yTop, mw-4, yBot - yTop);
+        // Green zone (tighter)
+        const gTop = my + mh * (1 - Math.min(1, spot + gw));
+        const gBot = my + mh * (1 - Math.max(0, spot - gw));
+        g.fillStyle(0x22cc44, 0.30); g.fillRect(mx+2, gTop, mw-4, gBot - gTop);
+
         g.lineStyle(1, 0x444466, 0.8); g.strokeRect(mx, my, mw, mh);
 
         // Current fill
@@ -1828,8 +1871,10 @@ class PlayScene extends Phaser.Scene {
     updateIdle(time, dt) {
         this.meterTime += dt;
         // Oscillate between MIN_POWER_FLOOR and 1.0
+        // Speed increases with level: L1=2.0 (slow), L12=5.0 (fast)
+        const levelSpeedMult = 2.0 + (this.currentLevel / 11) * 3.0;
         const floor = CONFIG.MIN_POWER_FLOOR;
-        const raw = 0.5 + 0.5 * Math.sin(this.meterTime * CONFIG.METER_OSCILLATION_SPEED);
+        const raw = 0.5 + 0.5 * Math.sin(this.meterTime * levelSpeedMult);
         this.meterValue = floor + raw * (1 - floor);
         this.bounceTime += dt;
         const by = Math.sin(this.bounceTime * 3.5) * 3;
@@ -1842,10 +1887,10 @@ class PlayScene extends Phaser.Scene {
         const friction = CONFIG.BASE_FRICTION * (1 - sinA * CONFIG.SLOPE_FRICTION_REDUCTION);
         const gravity = CONFIG.GRAVITY_ASSIST * sinA;
         let ca = 0, edm = 1;
-        if (this.cursors.right.isDown) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
-        else if (this.cursors.left.isDown) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
+        if (this.cursors.right.isDown || this.touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
+        else if (this.cursors.left.isDown || this.touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
 
-        const jumpPressed = this.cursors.up.isDown || this.spaceKey.isDown;
+        const jumpPressed = this.cursors.up.isDown || this.spaceKey.isDown || this.touchJump;
         if (jumpPressed && (time - this.lastJumpTime > CONFIG.JUMP_COOLDOWN_MS) && this.playerEnergy > this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC) {
             this.lastJumpTime = time; this.jumpVelY = -CONFIG.JUMP_VELOCITY;
             this.playerEnergy -= this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC;
@@ -1913,7 +1958,20 @@ class PlayScene extends Phaser.Scene {
         this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS, this.rollRotation);
     }
 
+    showTouchButtons(visible) {
+        if (this.btnLeft) {
+            this.btnLeft.setVisible(visible);
+            this.btnRight.setVisible(visible);
+            this.btnJump.setVisible(visible);
+            // Also toggle the text labels
+            this.children.list.forEach(c => {
+                if (c.name === 'btnLeftTxt' || c.name === 'btnRightTxt' || c.name === 'btnJumpTxt') c.setVisible(visible);
+            });
+        }
+    }
+
     onPlayerStopped() {
+        this.showTouchButtons(false);
         // Snap player to the top of the nearest step so they sit ON the step, not inside the slope
         const ld = this.levelData;
         if (this.playerWorldX < ld.endX) {
@@ -1945,6 +2003,7 @@ class PlayScene extends Phaser.Scene {
     }
 
     onPlayerCrashed() {
+        this.showTouchButtons(false);
         // Project where the player would end up if they kept rolling through the camera
         // This determines crash tier — more momentum = worse crash
         let simVel = this.playerVelocity;
@@ -2152,5 +2211,6 @@ const game = new Phaser.Game({
     type: Phaser.AUTO, width: CONFIG.WIDTH, height: CONFIG.HEIGHT,
     backgroundColor: CONFIG.BG_COLOR, parent: document.body,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    input: { touch: true, activePointers: 3 },
     scene: [PlayScene, StoreScene],
 });
