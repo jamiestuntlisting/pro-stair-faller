@@ -45,7 +45,7 @@ const CONFIG = {
     PLAYER_RADIUS: 68,        // tucked ball radius — ~45% of standing height (torso length)
     PERSON_HEIGHT: 300,       // standing height in pixels (~5 stair risers)
     CAM_LEAD_X: 100,
-    CAM_SMOOTH: 0.06,
+    CAM_SMOOTH: 0.12,
 
     BG_COLOR: 0x1c1c24,
 };
@@ -66,7 +66,14 @@ const COSTUMES = [
     { name: 'Chef', shirt: 0xffffff, pants: 0x444466, hat: 'chef', prop: 'pan' },
     { name: 'Wizard', shirt: 0x4422aa, pants: 0x331188, hat: 'wizard', prop: 'wand' },
     { name: 'Luchador', shirt: 0xee2288, pants: 0xeecc22, hat: 'lucha', prop: 'belt' },
-    { name: 'Scuba Diver', shirt: 0x1a1a1a, pants: 0x1a1a1a, hat: 'goggles', prop: 'flipper' },
+    { name: 'Scuba Diver', shirt: 0x336688, pants: 0x224466, hat: 'goggles', prop: 'flipper' },
+    { name: 'Cowboy', shirt: 0xaa8844, pants: 0x556644, hat: 'cowboy', prop: 'lasso' },
+    { name: 'Ninja', shirt: 0x444444, pants: 0x333333, hat: 'mask', prop: 'star' },
+    { name: 'Disco King', shirt: 0xddaa22, pants: 0xffffff, hat: 'afro', prop: 'ball' },
+    { name: 'Hazmat Suit', shirt: 0xcccc22, pants: 0xbbbb11, hat: 'mask', prop: 'geiger' },
+    { name: 'Mummy', shirt: 0xddccaa, pants: 0xccbb99, hat: 'wrap', prop: 'scepter' },
+    { name: 'Robot', shirt: 0x888899, pants: 0x777788, hat: 'antenna', prop: 'laser' },
+    { name: 'Santa', shirt: 0xcc2222, pants: 0xcc2222, hat: 'santa', prop: 'sack' },
 ];
 const LOCATIONS = [
     { name: 'Suburban Home', bg: 0x1c1c24, floor: 0x555566, wall: 0x3a3a4a, stair: 0x666677 },
@@ -81,6 +88,14 @@ const LOCATIONS = [
     { name: 'Ski Lodge', bg: 0x1a1a22, floor: 0x6a5a4a, wall: 0x4a3a2a, stair: 0x8a7a6a },
     { name: 'Prison', bg: 0x181818, floor: 0x555555, wall: 0x333333, stair: 0x666666 },
     { name: 'Cruise Ship', bg: 0x0a1420, floor: 0x5a6a7a, wall: 0x3a4a5a, stair: 0x6a7a8a },
+    { name: 'Pyramid', bg: 0x1a1808, floor: 0x8a7a4a, wall: 0x5a4a2a, stair: 0x9a8a5a },
+    { name: 'Space Station', bg: 0x000010, floor: 0x3a3a4a, wall: 0x1a1a2a, stair: 0x5a5a6a },
+    { name: 'Nightclub', bg: 0x0a0018, floor: 0x2a2a4a, wall: 0x1a0a2a, stair: 0x4a3a5a },
+    { name: 'Nuclear Plant', bg: 0x0a1a0a, floor: 0x4a5a3a, wall: 0x2a3a1a, stair: 0x5a6a3a },
+    { name: 'Arctic Base', bg: 0x1a2028, floor: 0x8a9aaa, wall: 0x5a6a7a, stair: 0x9aaabb },
+    { name: 'Demon Castle', bg: 0x1a0808, floor: 0x4a2a2a, wall: 0x2a0a0a, stair: 0x5a3a3a },
+    { name: 'Cloud Palace', bg: 0x1a1a2a, floor: 0xaaaacc, wall: 0x7a7a9a, stair: 0xbbbbdd },
+    { name: 'The Void', bg: 0x000000, floor: 0x2a2a2a, wall: 0x0a0a0a, stair: 0x3a3a3a },
 ];
 const LEVELS = [
     // sweetSpot = optimal meter value (0-1), greenW = ±range for green, yellowExtra = extra ± for yellow
@@ -92,18 +107,27 @@ const LEVELS = [
     // L3-4: Short staircases
     { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.74, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
-    // L5-6: Medium — wider green zones for easier play
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.90, greenW: 0.05, yellowExtra: 0.05 },
+    // L5-6: Medium
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.88, greenW: 0.05, yellowExtra: 0.05 },
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.05, yellowExtra: 0.05 },
     // L7-8: Long staircases
     { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.89, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
-    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.68, greenW: 0.04, yellowExtra: 0.04 },
+    { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.84, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.65, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.83, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.70, greenW: 0.03, yellowExtra: 0.04 },
+    // L13+: EXTREME — unrealistic, creative, very steep
+    { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.60, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Stairway to Hell', angleDeg: 70, numSteps: 60, flatLength: 2500, markOffset: 1500, sweetSpot: 0.55, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'Skyscraper', angleDeg: 30, numSteps: 200, flatLength: 3000, markOffset: 1800, sweetSpot: 0.92, greenW: 0.03, yellowExtra: 0.03 },
+    { name: 'The Waterfall', angleDeg: 75, numSteps: 80, flatLength: 3000, markOffset: 2000, sweetSpot: 0.50, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'Mount Doom', angleDeg: 60, numSteps: 120, flatLength: 2500, markOffset: 1600, sweetSpot: 0.65, greenW: 0.02, yellowExtra: 0.03 },
+    { name: 'The Abyss', angleDeg: 80, numSteps: 100, flatLength: 4000, markOffset: 2500, sweetSpot: 0.45, greenW: 0.02, yellowExtra: 0.02 },
+    { name: 'Babel Tower', angleDeg: 35, numSteps: 300, flatLength: 3500, markOffset: 2200, sweetSpot: 0.95, greenW: 0.02, yellowExtra: 0.02 },
+    { name: 'Freefall', angleDeg: 85, numSteps: 60, flatLength: 5000, markOffset: 3000, sweetSpot: 0.40, greenW: 0.02, yellowExtra: 0.02 },
 ];
 
 function buildLevel(levelDef) {
@@ -1479,12 +1503,14 @@ class PlayScene extends Phaser.Scene {
         }
 
         if (pv.back > 0) {
-            // Slight hump on the back (left side of character)
+            // Big hump on the back — spine protector makes back 30% bigger
             const bb = pv.back;
-            const backBumpR = H * (0.012 + bb * 0.008);
+            const backBumpW = H * (0.03 + bb * 0.02);
+            const backBumpH = H * (0.08 + bb * 0.04);
             const backColor = padShade(shirt, 10);
-            g.fillStyle(backColor, 0.55);
-            g.fillEllipse(x - H*0.07, y - H*0.60, backBumpR, H*0.06 + bb * H*0.01);
+            g.fillStyle(backColor, 0.6);
+            g.fillEllipse(x - H*0.08, y - H*0.58, backBumpW, backBumpH);
+            g.fillEllipse(x - H*0.07, y - H*0.52, backBumpW * 0.8, backBumpH * 0.7);
         }
     }
 
@@ -1498,7 +1524,7 @@ class PlayScene extends Phaser.Scene {
         const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
         const H = CONFIG.PERSON_HEIGHT;
         const pv = this.padVisuals || {};
-        const fullThick = pv.full ? 1.3 : 1.0;
+        const fullThick = pv.full ? 1.8 : 1.0; // Michelin Man in lying pose too
         // Bigger crashes = player lies still longer (crash tier multiplies the beat)
         const beatMult = this.crashTier > 0 ? 1 + this.crashTier * 0.4 : 1;
         const beatDur = CONFIG.STOP_BEAT_DURATION * beatMult / 1000;
@@ -1783,8 +1809,8 @@ class PlayScene extends Phaser.Scene {
         const cos = Math.cos(rotation), sin = Math.sin(rotation);
         const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
         const pv = this.padVisuals || {};
-        const fullPuff = pv.full ? 1.2 : 1.0; // 20% bigger circles when full suit
-        const fullThick = pv.full ? 1.3 : 1.0; // 30% thicker limb lines when full suit
+        const fullPuff = pv.full ? 1.6 : 1.0; // 60% bigger circles when full suit — Michelin Man
+        const fullThick = pv.full ? 1.8 : 1.0; // 80% thicker limb lines when full suit
 
         // Shadow
         g.fillStyle(0x000000, 0.15);
@@ -2365,21 +2391,36 @@ class StoreScene extends Phaser.Scene {
         const scrollH = CONFIG.HEIGHT - headerH - footerH;
 
         // Header — fixed
-        if (this.restWeek) {
-            // Full-width rest banner
-            this.add.rectangle(CONFIG.WIDTH/2, 28, CONFIG.WIDTH, 56, 0x1a3a1a);
-            this.add.rectangle(CONFIG.WIDTH/2, 28, CONFIG.WIDTH - 4, 52, 0x224422).setStrokeStyle(2, 0x44aa44);
-            this.add.text(CONFIG.WIDTH/2, 18, "END OF THE WEEK", {
-                fontSize: '24px', fontFamily: 'Georgia, serif', color: '#88ffaa', fontStyle: 'bold',
+        if (this.restWeek && !this._restDismissed) {
+            // Full-screen diagonal rest overlay — tap to dismiss
+            const overlay = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT/2, CONFIG.WIDTH, CONFIG.HEIGHT, 0x0a2a0a, 0.85);
+            overlay.setDepth(100);
+            // Diagonal green banner
+            const banner = this.add.rectangle(CONFIG.WIDTH/2, CONFIG.HEIGHT/2, CONFIG.WIDTH * 1.5, 160, 0x1a5a1a);
+            banner.setAngle(-15);
+            banner.setDepth(101);
+            banner.setStrokeStyle(4, 0x44cc44);
+            const title = this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT/2 - 25, "END OF THE WEEK", {
+                fontSize: '52px', fontFamily: 'Georgia, serif', color: '#88ffaa', fontStyle: 'bold',
+                stroke: '#000000', strokeThickness: 5,
+            }).setOrigin(0.5).setDepth(102).setAngle(-15);
+            const sub = this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT/2 + 30, "Your health has been restored.\nGood luck this week!", {
+                fontSize: '28px', fontFamily: 'Arial', color: '#aaddbb', align: 'center',
                 stroke: '#000000', strokeThickness: 3,
-            }).setOrigin(0.5);
-            this.add.text(CONFIG.WIDTH/2, 40, "Your health has been restored. Good luck this week!", {
-                fontSize: '16px', fontFamily: 'Arial', color: '#aaddbb',
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setDepth(102).setAngle(-15);
+            const tap = this.add.text(CONFIG.WIDTH/2, CONFIG.HEIGHT - 80, "TAP TO CONTINUE", {
+                fontSize: '22px', fontFamily: 'Arial', color: '#88aa88',
+            }).setOrigin(0.5).setDepth(102);
+            // Dismiss on tap/click
+            overlay.setInteractive();
+            overlay.on('pointerdown', () => {
+                this._restDismissed = true;
+                overlay.destroy(); banner.destroy(); title.destroy(); sub.destroy(); tap.destroy();
+            });
         }
-        this.add.text(CONFIG.WIDTH/2, this.restWeek ? 72 : 30, 'PAD STORE', {
-            fontSize: this.restWeek ? '30px' : '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
-            stroke: '#000000', strokeThickness: this.restWeek ? 3 : 5,
+        this.add.text(CONFIG.WIDTH/2, 30, 'PAD STORE', {
+            fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
+            stroke: '#000000', strokeThickness: 5,
         }).setOrigin(0.5);
         this.add.text(CONFIG.WIDTH/2, 80, `Cash: $${this.currency}  |  Health: ${Math.round(this.health)}/${CONFIG.BASE_HEALTH}  |  Protection: ${this.protection}`, {
             fontSize: '22px', fontFamily: 'Arial', color: '#8888aa',
