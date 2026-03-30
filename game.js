@@ -94,9 +94,9 @@ const LEVELS = [
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
     // L5-6: Medium
     { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.04 },
-    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.78, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.03, yellowExtra: 0.04 },
     // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.03, yellowExtra: 0.03 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.02, yellowExtra: 0.03 },
@@ -2016,7 +2016,7 @@ class PlayScene extends Phaser.Scene {
                 if (d.crashed) {
                     this.promptText.setText(`${hs}`).setVisible(true).setColor('#ffaa66');
                 } else {
-                    this.promptText.setText(`${feetToStr(d.distFeet)} off — GOING AGAIN!`).setVisible(true).setColor('#ffffff');
+                    this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
             } else {
                 this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#aaaacc');
@@ -2031,9 +2031,12 @@ class PlayScene extends Phaser.Scene {
             this.crashAnimTime += dt;
             this.drawCrewScene(this.crashTier, Math.min(this.crashAnimTime/2.5, 1));
         } else if (this.scoreData && this.scoreData.isPerfect) {
-            // Crew celebrates on perfect score!
             this.crashAnimTime = (this.crashAnimTime || 0) + dt;
             this.drawCrewCelebration(this.crashAnimTime);
+        } else if (this.scoreData && !this.scoreData.crashed && this.scoreData.distFeet <= 1.0) {
+            // Close to mark — crew nods approvingly
+            this.crashAnimTime = (this.crashAnimTime || 0) + dt;
+            this.drawCrewNodding(this.crashAnimTime);
         }
     }
 
@@ -2131,6 +2134,76 @@ class PlayScene extends Phaser.Scene {
         g.beginPath();
         g.arc(x, headY + headR*0.25, headR*0.25, 0.2, Math.PI - 0.2);
         g.strokePath();
+    }
+
+    drawCrewNodding(t) {
+        const g = this.crewGfx; g.clear();
+        const H = CONFIG.PERSON_HEIGHT;
+        const ld = this.levelData;
+        const cy = ld.endY;
+        const camX = ld.cameraX;
+        this.drawCameraRig(g, camX, cy, 0, 0);
+
+        const crew1X = camX + 80, crew2X = camX + 160, crew3X = camX + 240;
+        const style1 = { skin: 0x8d5524, hair: 0x0a0808 };
+        const style2 = { skin: 0xc68642, hair: 0x2a1a0a };
+        const style3 = { skin: 0xf5d0a9, hair: 0x3a2a1a };
+        const cols = [0x4a4a5a, 0x5a4a3a, 0x2a2a3a];
+        const styles = [style1, style2, style3];
+        const xs = [crew1X, crew2X, crew3X];
+
+        for (let i = 0; i < 3; i++) {
+            const x = xs[i], cl = cols[i], st = styles[i];
+            const skin = st.skin, hair = st.hair;
+            const hipY = cy - H*0.28, shY = cy - H*0.64;
+            const headR = H*0.05;
+
+            // Legs
+            g.lineStyle(H*0.035, cl, 1);
+            g.beginPath();
+            g.moveTo(x - H*0.03, hipY); g.lineTo(x - H*0.04, cy);
+            g.moveTo(x + H*0.03, hipY); g.lineTo(x + H*0.04, cy);
+            g.strokePath();
+            g.fillStyle(0x1a1a1a, 1);
+            g.fillRect(x - H*0.06, cy - H*0.008, H*0.05, H*0.02);
+            g.fillRect(x + H*0.02, cy - H*0.008, H*0.05, H*0.02);
+            // Torso
+            g.lineStyle(H*0.10, cl, 1);
+            g.beginPath(); g.moveTo(x, hipY); g.lineTo(x, shY); g.strokePath();
+            // Arms folded / at sides
+            g.lineStyle(H*0.026, cl, 1);
+            g.beginPath();
+            g.moveTo(x - H*0.08, shY); g.lineTo(x - H*0.10, shY + H*0.14);
+            g.moveTo(x + H*0.08, shY); g.lineTo(x + H*0.10, shY + H*0.14);
+            g.strokePath();
+            g.lineStyle(H*0.022, skin, 1);
+            g.beginPath();
+            g.moveTo(x - H*0.10, shY + H*0.14); g.lineTo(x - H*0.06, shY + H*0.22);
+            g.moveTo(x + H*0.10, shY + H*0.14); g.lineTo(x + H*0.06, shY + H*0.22);
+            g.strokePath();
+            // Neck
+            g.fillStyle(skin, 1);
+            g.fillRect(x - H*0.014, shY - H*0.05, H*0.028, H*0.05);
+            // Head — nodding up and down
+            const nod = Math.sin(t * 4 + i * 1.2) * H*0.015;
+            const headY = shY - H*0.10 + nod;
+            g.fillStyle(hair, 1);
+            g.fillCircle(x, headY, headR);
+            g.fillStyle(skin, 1);
+            g.fillCircle(x, headY + headR*0.15, headR*0.82);
+            // Approving eyes + slight smile
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(x - headR*0.3, headY, headR*0.14);
+            g.fillCircle(x + headR*0.3, headY, headR*0.14);
+            g.fillStyle(0x222222, 1);
+            g.fillCircle(x - headR*0.28, headY + headR*0.02, headR*0.07);
+            g.fillCircle(x + headR*0.28, headY + headR*0.02, headR*0.07);
+            // Slight approving smile
+            g.lineStyle(H*0.003, 0x995544, 0.6);
+            g.beginPath();
+            g.arc(x, headY + headR*0.28, headR*0.18, 0.3, Math.PI - 0.3);
+            g.strokePath();
+        }
     }
 }
 
