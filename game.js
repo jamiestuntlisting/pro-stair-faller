@@ -732,20 +732,20 @@ class PlayScene extends Phaser.Scene {
                 } else {
                     // Crawling phase: crawl → stop + vomit → collapse
                     const crawlTime = Math.max(0, t - 0.5);
-                    const vomiting = crawlTime > 3.5 && crawlTime <= 5.0;
-                    const collapsed = crawlTime > 5.0;
+                    const vomiting = crawlTime > 3.5 && crawlTime <= 7.0;
+                    const collapsed = crawlTime > 7.0;
                     const crawlDist = Math.min(crawlTime, 3.5) * H * 0.20;
                     const crawlX = crew2X + 100 + crawlDist;
                     const bob = (collapsed || vomiting) ? 0 : Math.sin(t * 7) * 5;
                     const limb = (collapsed || vomiting) ? 0 : Math.sin(t * 5);
 
                     if (collapsed) {
-                        // Persistent vomit puddle (from when he was throwing up)
+                        // Persistent vomit puddle — big final size
                         const vPudX = crawlX + H*0.21;
                         g.fillStyle(0x8a9a2a, 0.7);
-                        g.fillEllipse(vPudX, cy + H*0.01, H*0.08, H*0.03);
+                        g.fillEllipse(vPudX, cy + H*0.01, H*0.20, H*0.08);
                         g.fillStyle(0x6a7a1a, 0.5);
-                        g.fillEllipse(vPudX, cy + H*0.01, H*0.04, H*0.018);
+                        g.fillEllipse(vPudX, cy + H*0.01, H*0.12, H*0.05);
                         // Face down on ground — head stays on RIGHT (same as crawl direction)
                         const lieX = crawlX;
                         // Torso
@@ -798,13 +798,13 @@ class PlayScene extends Phaser.Scene {
                         g.fillCircle(hx, hy, H*0.045);
                         g.fillStyle(0xd4a87c, 1);
                         g.fillCircle(hx + H*0.005, hy + H*0.015, H*0.035);
-                        // Vomit puddle growing on the ground
-                        if (vomitProg > 0.2) {
-                            const vSize = (vomitProg - 0.2) * H * 0.10;
+                        // Vomit puddle growing on the ground — gets big
+                        if (vomitProg > 0.1) {
+                            const vSize = (vomitProg - 0.1) * H * 0.25;
                             g.fillStyle(0x8a9a2a, 0.7);
                             g.fillEllipse(hx + H*0.02, cy + H*0.01, vSize, vSize * 0.4);
                             g.fillStyle(0x6a7a1a, 0.5);
-                            g.fillEllipse(hx + H*0.02, cy + H*0.01, vSize * 0.5, vSize * 0.25);
+                            g.fillEllipse(hx + H*0.02, cy + H*0.01, vSize * 0.6, vSize * 0.3);
                         }
                         // Vomit stream from mouth
                         if (vomitProg > 0.1 && vomitProg < 0.8) {
@@ -2114,7 +2114,7 @@ class PlayScene extends Phaser.Scene {
         this.time.delayedCall(CONFIG.STOP_BEAT_DURATION, () => {
             this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${feetToStr(d.distFeet)} from mark`).setVisible(true);
             if (d.crashed) {
-                const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
+                const tn = ['','HIT!','LEAN-BACK!','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
                 this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
             }
         });
@@ -2296,21 +2296,25 @@ class PlayScene extends Phaser.Scene {
             // Neck
             g.fillStyle(skin, 1);
             g.fillRect(x - H*0.014, shY - H*0.05, H*0.028, H*0.05);
-            // Head — nodding up and down
-            const nod = Math.sin(t * 4 + i * 1.2) * H*0.015;
+            // Head — fast nodding
+            const nod = Math.sin(t * 8 + i * 1.5) * H*0.022;
             const headY = shY - H*0.10 + nod;
             g.fillStyle(hair, 1);
             g.fillCircle(x, headY, headR);
             g.fillStyle(skin, 1);
             g.fillCircle(x, headY + headR*0.15, headR*0.82);
-            // Approving eyes + slight smile
+            // Eyes — look toward neighboring crew member, pupils track nod
+            const eyeNod = nod * 0.8; // eyes follow the nod
+            // Middle guy looks left, outer guys look inward
+            const lookDir = i === 0 ? 1 : i === 2 ? -1 : (Math.sin(t * 2) > 0 ? -1 : 1);
+            const eyeShiftX = lookDir * headR * 0.06;
             g.fillStyle(0xffffff, 1);
             g.fillCircle(x - headR*0.3, headY, headR*0.14);
             g.fillCircle(x + headR*0.3, headY, headR*0.14);
             g.fillStyle(0x222222, 1);
-            g.fillCircle(x - headR*0.28, headY + headR*0.02, headR*0.07);
-            g.fillCircle(x + headR*0.28, headY + headR*0.02, headR*0.07);
-            // Slight approving smile
+            g.fillCircle(x - headR*0.28 + eyeShiftX, headY + eyeNod * 0.3, headR*0.07);
+            g.fillCircle(x + headR*0.28 + eyeShiftX, headY + eyeNod * 0.3, headR*0.07);
+            // Approving smile
             g.lineStyle(H*0.003, 0x995544, 0.6);
             g.beginPath();
             g.arc(x, headY + headR*0.28, headR*0.18, 0.3, Math.PI - 0.3);
