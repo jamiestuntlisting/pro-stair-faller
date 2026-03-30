@@ -11,7 +11,7 @@ const CONFIG = {
     HEIGHT: 720,
 
     // World — much bigger scale for realistic proportions
-    STAIR_START_X: 300,
+    STAIR_START_X: 150,
     STAIR_START_Y: 200,
     STEP_WIDTH: 40,         // tread depth in pixels — half size for realistic scale
 
@@ -88,12 +88,12 @@ const LEVELS = [
     // L1: was 0.68 (too far), L3: was 0.64 (too short)
     // L1-2: Tutorial
     { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.58, greenW: 0.04, yellowExtra: 0.06 },
-    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.62, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.67, greenW: 0.04, yellowExtra: 0.05 },
     // L3-4: Short staircases
     { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
     // L5-6: Medium
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.66, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.62, greenW: 0.03, yellowExtra: 0.04 },
     // L7-8: Long staircases
     { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.68, greenW: 0.03, yellowExtra: 0.04 },
@@ -194,6 +194,10 @@ class PlayScene extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.input.on('pointerdown', () => this.handleAction());
         this.spaceKey.on('down', () => this.handleAction());
+        // Document-level touch for portrait mode (taps outside canvas area)
+        this._docTouch = () => this.handleAction();
+        document.addEventListener('touchstart', this._docTouch, { passive: true });
+        this.events.on('shutdown', () => document.removeEventListener('touchstart', this._docTouch));
 
         // World layers
         this.bgGfx = this.add.graphics();
@@ -211,7 +215,7 @@ class PlayScene extends Phaser.Scene {
         const worldW = this.levelData.flatEndX + 600;
         const worldH = this.levelData.endY + 600;
         this.cameras.main.setBounds(-500, -600, worldW + 1000, worldH + 1200);
-        this.cameras.main.scrollX = SEGMENTS[0].startX - 400;
+        this.cameras.main.scrollX = SEGMENTS[0].startX - 200;
         this.cameras.main.scrollY = SEGMENTS[0].startY - 300;
         this.camTargetX = this.cameras.main.scrollX;
         this.camTargetY = this.cameras.main.scrollY;
