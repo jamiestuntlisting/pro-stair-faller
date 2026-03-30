@@ -26,10 +26,10 @@ const CONFIG = {
     GRAVITY_ASSIST: 280,
     MAX_ENERGY_DRAIN_RATE: 0.55,
     SLOPE_DRAIN_REDUCTION: 0.6,
-    BOOST_ACCEL: 150,
-    BOOST_ENERGY_MULT: 1.4,
-    BRAKE_ACCEL: -200,
-    BRAKE_ENERGY_MULT: 0.6,
+    BOOST_ACCEL: 200,
+    BOOST_ENERGY_MULT: 0.6,
+    BRAKE_ACCEL: -150,
+    BRAKE_ENERGY_MULT: 1.4,
     PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
 
@@ -117,7 +117,7 @@ const LEVELS = [
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.88, greenW: 0.04, yellowExtra: 0.04 },
     { name: 'The Gauntlet', angleDeg: 40, numSteps: 60, flatLength: 1800, markOffset: 1000, sweetSpot: 0.78, greenW: 0.04, yellowExtra: 0.04 },
     // L11-12: Extreme
-    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.83, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Nosedive', angleDeg: 52, numSteps: 48, flatLength: 1700, markOffset: 950, sweetSpot: 0.78, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'The Endless Fall', angleDeg: 35, numSteps: 80, flatLength: 2000, markOffset: 1100, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
     // L13+: EXTREME — unrealistic, creative, very steep
     { name: 'The Cliff', angleDeg: 65, numSteps: 40, flatLength: 2000, markOffset: 1200, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
