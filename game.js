@@ -135,12 +135,11 @@ function buildLevel(levelDef) {
 }
 
 function feetToStr(decimalFeet) {
-    if (decimalFeet < 1) {
-        const inches = Math.round(decimalFeet * 12);
-        return `${inches} inch${inches !== 1 ? 'es' : ''}`;
-    }
-    const ft = Math.floor(decimalFeet);
-    const inches = Math.round((decimalFeet - ft) * 12);
+    const totalInches = Math.round(decimalFeet * 12);
+    const ft = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    if (ft === 0) return `${inches} inch${inches !== 1 ? 'es' : ''}`;
+    if (inches === 0) return `${ft}'`;
     return `${ft}' ${inches}"`;
 }
 
@@ -2040,7 +2039,7 @@ class PlayScene extends Phaser.Scene {
         } else if (this.scoreData && this.scoreData.isPerfect) {
             this.crashAnimTime = (this.crashAnimTime || 0) + dt;
             this.drawCrewCelebration(this.crashAnimTime);
-        } else if (this.scoreData && !this.scoreData.crashed && this.scoreData.distFeet <= 1.0) {
+        } else if (this.scoreData && !this.scoreData.crashed && this.scoreData.distFeet <= 1.1) {
             // Close to mark — crew nods approvingly
             this.crashAnimTime = (this.crashAnimTime || 0) + dt;
             this.drawCrewNodding(this.crashAnimTime);
