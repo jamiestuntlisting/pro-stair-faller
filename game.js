@@ -90,13 +90,13 @@ const LEVELS = [
     { name: 'Baby Steps', angleDeg: 30, numSteps: 4, flatLength: 600, markOffset: 300, sweetSpot: 0.58, greenW: 0.04, yellowExtra: 0.06 },
     { name: 'Getting Started', angleDeg: 32, numSteps: 10, flatLength: 800, markOffset: 400, sweetSpot: 0.67, greenW: 0.04, yellowExtra: 0.05 },
     // L3-4: Short staircases
-    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.72, greenW: 0.04, yellowExtra: 0.05 },
+    { name: 'The Basics', angleDeg: 35, numSteps: 16, flatLength: 1000, markOffset: 500, sweetSpot: 0.74, greenW: 0.04, yellowExtra: 0.05 },
     { name: 'Gentle Slope', angleDeg: 25, numSteps: 20, flatLength: 1000, markOffset: 500, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.05 },
     // L5-6: Medium
-    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.82, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'Picking Up Speed', angleDeg: 35, numSteps: 28, flatLength: 1200, markOffset: 650, sweetSpot: 0.90, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'Steep Drop', angleDeg: 45, numSteps: 24, flatLength: 1400, markOffset: 750, sweetSpot: 0.84, greenW: 0.03, yellowExtra: 0.04 },
     // L7-8: Long staircases
-    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.80, greenW: 0.03, yellowExtra: 0.04 },
+    { name: 'The Long Way Down', angleDeg: 32, numSteps: 40, flatLength: 1200, markOffset: 620, sweetSpot: 0.92, greenW: 0.03, yellowExtra: 0.04 },
     { name: 'Vertigo', angleDeg: 50, numSteps: 32, flatLength: 1600, markOffset: 900, sweetSpot: 0.64, greenW: 0.03, yellowExtra: 0.03 },
     // L9-10: Very long
     { name: 'Barely a Ramp', angleDeg: 22, numSteps: 56, flatLength: 1100, markOffset: 500, sweetSpot: 0.72, greenW: 0.02, yellowExtra: 0.03 },
@@ -334,8 +334,15 @@ class PlayScene extends Phaser.Scene {
                 // Retry same level — increment take number, keep skin tone
                 this.scene.start('PlayScene', { ...passData, level: this.currentLevel, takeNumber: this.takeNumber + 1 });
             } else {
-                // Success — go to store before next level
-                this.scene.start('StoreScene', { ...passData, level: this.currentLevel + 1 });
+                // Success — check for end-of-week rest
+                const nextLevel = this.currentLevel + 1;
+                const isRestWeek = (nextLevel % 5 === 0); // after level 5, 10, 15...
+                if (isRestWeek) {
+                    // Rest up — recover health
+                    passData.health = Math.min(CONFIG.BASE_HEALTH, passData.health + 40);
+                    passData.restWeek = true;
+                }
+                this.scene.start('StoreScene', { ...passData, level: nextLevel });
             }
         }
     }
@@ -2237,6 +2244,7 @@ class StoreScene extends Phaser.Scene {
         this.protection = data.protection || 0;
         this.skinTone = data.skinTone;
         this.playerGender = data.playerGender;
+        this.restWeek = data.restWeek || false;
     }
 
     create() {
@@ -2248,10 +2256,21 @@ class StoreScene extends Phaser.Scene {
         const scrollH = CONFIG.HEIGHT - headerH - footerH;
 
         // Header — fixed
-        this.add.text(CONFIG.WIDTH/2, 30, 'PAD STORE', {
-            fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
-            stroke: '#000000', strokeThickness: 5,
-        }).setOrigin(0.5);
+        if (this.restWeek) {
+            this.add.text(CONFIG.WIDTH/2, 30, "END OF THE WEEK — TIME TO REST UP!", {
+                fontSize: '28px', fontFamily: 'Georgia, serif', color: '#66dd88',
+                stroke: '#000000', strokeThickness: 4,
+            }).setOrigin(0.5);
+            this.add.text(CONFIG.WIDTH/2, 58, 'PAD STORE', {
+                fontSize: '32px', fontFamily: 'Georgia, serif', color: '#ccccee',
+                stroke: '#000000', strokeThickness: 4,
+            }).setOrigin(0.5);
+        } else {
+            this.add.text(CONFIG.WIDTH/2, 30, 'PAD STORE', {
+                fontSize: '42px', fontFamily: 'Georgia, serif', color: '#ccccee',
+                stroke: '#000000', strokeThickness: 5,
+            }).setOrigin(0.5);
+        }
         this.add.text(CONFIG.WIDTH/2, 80, `Cash: $${this.currency}  |  Health: ${Math.round(this.health)}/${CONFIG.BASE_HEALTH}  |  Protection: ${this.protection}`, {
             fontSize: '22px', fontFamily: 'Arial', color: '#8888aa',
         }).setOrigin(0.5);
