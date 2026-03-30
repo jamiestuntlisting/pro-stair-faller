@@ -649,7 +649,17 @@ class PlayScene extends Phaser.Scene {
                     const arcX = crew1X + fallProg * 80;
                     this.drawCrewPerson(g, arcX, cy, 0x4a4a5a, false, false, 0, 2, 0, 'standing', style1);
                 } else {
-                    // Knocked out — lying face down
+                    // Blood pool FIRST (underneath body) — centered on body
+                    if (settleT > 0) {
+                        const growFactor = 1.0 + Math.min(t * 0.25, 2.0);
+                        const bloodW = H * 0.12 * growFactor;
+                        const bloodH = H * 0.04 * growFactor;
+                        g.fillStyle(0x8b0000, 0.6);
+                        g.fillEllipse(koX, cy - H*0.01, bloodW, bloodH);
+                        g.fillStyle(0x5a0000, 0.5);
+                        g.fillEllipse(koX, cy - H*0.01, bloodW * 0.5, bloodH * 0.6);
+                    }
+                    // Knocked out — lying face down (drawn ON TOP of blood)
                     g.lineStyle(H*0.035, 0x4a4a5a, 1);
                     g.beginPath(); g.moveTo(koX - H*0.14, cy - H*0.03); g.lineTo(koX + H*0.14, cy - H*0.02); g.strokePath();
                     g.lineStyle(H*0.028, 0x4a4a5a, 1);
@@ -667,17 +677,6 @@ class PlayScene extends Phaser.Scene {
                     g.fillStyle(0x1a1a1a, 1);
                     g.fillCircle(koX + H*0.26, cy - H*0.008, H*0.013);
                     g.fillCircle(koX + H*0.24, cy + H*0.015, H*0.013);
-                    // Blood pool — starts large, grows to 3x
-                    if (settleT > 0) {
-                        const growFactor = 1.0 + Math.min(t * 0.25, 2.0); // grows up to 3x
-                        const bloodW = H * 0.12 * growFactor;
-                        const bloodH = H * 0.04 * growFactor;
-                        g.fillStyle(0x8b0000, 0.6);
-                        g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW, bloodH);
-                        // Darker center
-                        g.fillStyle(0x5a0000, 0.5);
-                        g.fillEllipse(koX - H*0.05, cy + H*0.01, bloodW * 0.5, bloodH * 0.6);
-                    }
                     // Stars circling head (unconscious)
                     if (settleT > 0) {
                         for (let i = 0; i < 3; i++) {
@@ -1372,23 +1371,32 @@ class PlayScene extends Phaser.Scene {
             // Head
             const headX = neckX + Math.cos(torsoAngle - 0.3) * H*0.04;
             const headY = neckY + Math.sin(torsoAngle - 0.3) * H*0.04;
-            g.fillStyle(hair, 1);
-            g.fillCircle(headX, headY, headR);
-            g.fillStyle(skin, 1);
-            g.fillCircle(headX + headR*0.3, headY + headR*0.2, headR*0.82);
-            // Dazed expression
-            if (p < 0.5) {
-                // Eyes closed/dazed while getting up
-                g.fillStyle(skin, 0.7);
-                g.fillRect(headX - headR*0.4, headY - headR*0.05, headR*0.8, headR*0.12);
+            if (p < 0.3) {
+                // Lying flat — face DOWN, only hair visible from above
+                g.fillStyle(hair, 1);
+                g.fillCircle(headX, headY, headR);
+                // Small ear visible on the side
+                g.fillStyle(skin, 1);
+                g.fillCircle(headX, headY + headR*0.7, headR*0.2);
             } else {
-                // Eyes opening
-                g.fillStyle(0xffffff, 1);
-                g.fillCircle(headX - headR*0.25, headY, headR*0.12);
-                g.fillCircle(headX + headR*0.25, headY, headR*0.12);
-                g.fillStyle(0x443322, 1);
-                g.fillCircle(headX - headR*0.22, headY, headR*0.06);
-                g.fillCircle(headX + headR*0.22, headY, headR*0.06);
+                // Getting up / sitting — face becomes visible
+                const faceShow = (p - 0.3) / 0.7; // 0 to 1
+                // Hair on back of head
+                g.fillStyle(hair, 1);
+                g.fillCircle(headX, headY, headR);
+                // Face rotating into view
+                g.fillStyle(skin, 1);
+                g.fillCircle(headX + headR*0.2*faceShow, headY + headR*0.15, headR*0.82);
+                // Eyes
+                if (faceShow > 0.3) {
+                    const ef = (faceShow - 0.3) / 0.7;
+                    g.fillStyle(0xffffff, ef);
+                    g.fillCircle(headX - headR*0.25, headY + headR*0.05, headR*0.12);
+                    g.fillCircle(headX + headR*0.25, headY + headR*0.05, headR*0.12);
+                    g.fillStyle(0x443322, ef);
+                    g.fillCircle(headX - headR*0.22, headY + headR*0.07, headR*0.06);
+                    g.fillCircle(headX + headR*0.22, headY + headR*0.07, headR*0.06);
+                }
             }
         } else {
             // === FULLY SITTING — thumbs up pose ===
