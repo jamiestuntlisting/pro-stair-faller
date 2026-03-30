@@ -2172,7 +2172,7 @@ class StoreScene extends Phaser.Scene {
                         this.scene.restart({
                             health: this.health, level: this.level,
                             currency: this.currency, ownedPads: this.ownedPads,
-                            protection: this.protection
+                            protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender
                         });
                     });
                 }
