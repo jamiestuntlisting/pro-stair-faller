@@ -30,11 +30,6 @@ const CONFIG = {
     BOOST_ENERGY_MULT: 1.4,
     BRAKE_ACCEL: -130,
     BRAKE_ENERGY_MULT: 0.6,
-    JUMP_VELOCITY: 450,
-    JUMP_GRAVITY: 1800,
-    JUMP_ENERGY_COST_FRAC: 0.10,
-    JUMP_COOLDOWN_MS: 500,
-
     PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
 
@@ -187,8 +182,6 @@ class PlayScene extends Phaser.Scene {
         this.distAlongSegment = 0;
         this.playerWorldX = SEGMENTS[0].startX;
         this.playerWorldY = SEGMENTS[0].startY;
-        this.jumpVelY = 0;
-        this.lastJumpTime = 0;
         this.rollRotation = 0;
         this.scoreData = null;
         this.showingScore = false;
@@ -281,30 +274,8 @@ class PlayScene extends Phaser.Scene {
             stroke: '#000000', strokeThickness: 2,
         }).setOrigin(0.5).setScrollFactor(0);
 
-        // Mobile touch controls — on-screen buttons during rolling
-        this.touchBrake = false;
-        this.touchBoost = false;
-        this.touchJump = false;
-        const btnSize = 60, btnY = CONFIG.HEIGHT - 50, btnAlpha = 0.3;
-        // Left button (brake)
-        this.btnLeft = this.add.circle(70, btnY, btnSize/2, 0x4444aa, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
-        this.add.text(70, btnY, '◀', { fontSize: '24px', color: '#aaaaff' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnLeftTxt');
-        // Right button (boost)
-        this.btnRight = this.add.circle(170, btnY, btnSize/2, 0x44aa44, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
-        this.add.text(170, btnY, '▶', { fontSize: '24px', color: '#aaffaa' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnRightTxt');
-        // Jump button (right side)
-        this.btnJump = this.add.circle(CONFIG.WIDTH - 70, btnY, btnSize/2, 0xaa4444, btnAlpha).setScrollFactor(0).setInteractive().setVisible(false);
-        this.add.text(CONFIG.WIDTH - 70, btnY, '▲', { fontSize: '24px', color: '#ffaaaa' }).setOrigin(0.5).setScrollFactor(0).setVisible(false).setName('btnJumpTxt');
-
-        this.btnLeft.on('pointerdown', () => { this.touchBrake = true; });
-        this.btnLeft.on('pointerup', () => { this.touchBrake = false; });
-        this.btnLeft.on('pointerout', () => { this.touchBrake = false; });
-        this.btnRight.on('pointerdown', () => { this.touchBoost = true; });
-        this.btnRight.on('pointerup', () => { this.touchBoost = false; });
-        this.btnRight.on('pointerout', () => { this.touchBoost = false; });
-        this.btnJump.on('pointerdown', () => { this.touchJump = true; });
-        this.btnJump.on('pointerup', () => { this.touchJump = false; });
-        this.btnJump.on('pointerout', () => { this.touchJump = false; });
+        // Mobile touch controls — screen halves during rolling
+        // Left half = brake, Right half = boost (detected via pointer position in updateRolling)
 
         this.bounceTime = 0;
 
@@ -335,8 +306,8 @@ class PlayScene extends Phaser.Scene {
     handleAction() {
         if (this.playerState === 'idle') {
             this.launchPlayer();
-        } else if (this.playerState === 'rolling' || this.playerState === 'airborne') {
-            // Spacebar = jump during rolling (handled in updateRolling)
+        } else if (this.playerState === 'rolling') {
+            // During rolling, spacebar/tap does nothing (controls are arrow keys / touch zones)
             return;
         } else if ((this.playerState === 'stopped' || this.playerState === 'crashed') && this.showingScore) {
             // Check fail conditions: crashed or >5ft from mark = must retry
@@ -366,10 +337,8 @@ class PlayScene extends Phaser.Scene {
         this.currentSegment = 0;
         this.distAlongSegment = 0;
         this.playerState = 'rolling';
-        this.lastJumpTime = this.time.now + 500; // prevent spacebar from triggering jump on launch
+        this.launchTime = this.time.now; // cooldown: prevent spacebar from triggering anything right after launch
         this.hintText.setVisible(false);
-        // Show mobile touch buttons
-        this.showTouchButtons(true);
     }
 
     // ================================================================
@@ -1861,7 +1830,6 @@ class PlayScene extends Phaser.Scene {
         switch (this.playerState) {
             case 'idle': this.updateIdle(time, dt); break;
             case 'rolling': this.updateRolling(time, dt); break;
-            case 'airborne': this.updateAirborne(time, dt); break;
             case 'stopped': case 'crashed': this.updateStopped(time, dt); break;
         }
         this.updateCamera();
@@ -1888,15 +1856,17 @@ class PlayScene extends Phaser.Scene {
         const friction = CONFIG.BASE_FRICTION * (1 - sinA * CONFIG.SLOPE_FRICTION_REDUCTION);
         const gravity = CONFIG.GRAVITY_ASSIST * sinA;
         let ca = 0, edm = 1;
-        if (this.cursors.right.isDown || this.touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
-        else if (this.cursors.left.isDown || this.touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
 
-        const jumpPressed = this.cursors.up.isDown || this.spaceKey.isDown || this.touchJump;
-        if (jumpPressed && (time - this.lastJumpTime > CONFIG.JUMP_COOLDOWN_MS) && this.playerEnergy > this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC) {
-            this.lastJumpTime = time; this.jumpVelY = -CONFIG.JUMP_VELOCITY;
-            this.playerEnergy -= this.playerMaxEnergy * CONFIG.JUMP_ENERGY_COST_FRAC;
-            this.playerState = 'airborne'; return;
+        // Touch zone detection: left half = brake, right half = boost
+        let touchBrake = false, touchBoost = false;
+        const pointer = this.input.activePointer;
+        if (pointer && pointer.isDown) {
+            if (pointer.x < CONFIG.WIDTH / 2) { touchBrake = true; }
+            else { touchBoost = true; }
         }
+
+        if (this.cursors.right.isDown || touchBoost) { ca = CONFIG.BOOST_ACCEL; edm = CONFIG.BOOST_ENERGY_MULT; }
+        else if (this.cursors.left.isDown || touchBrake) { ca = CONFIG.BRAKE_ACCEL; edm = CONFIG.BRAKE_ENERGY_MULT; }
 
         this.playerVelocity = Math.max(0, this.playerVelocity + (gravity - friction + ca) * dt);
         this.playerEnergy = Math.max(0, this.playerEnergy - CONFIG.MAX_ENERGY_DRAIN_RATE * this.playerMaxEnergy * (1 - sinA * CONFIG.SLOPE_DRAIN_REDUCTION) * edm * dt);
@@ -1927,52 +1897,7 @@ class PlayScene extends Phaser.Scene {
         }
     }
 
-    updateAirborne(time, dt) {
-        this.jumpVelY += CONFIG.JUMP_GRAVITY * dt;
-        const seg = SEGMENTS[this.currentSegment];
-        const hVel = this.playerVelocity * Math.cos(seg.angle);
-        this.playerWorldX += hVel * dt; this.playerWorldY += this.jumpVelY * dt;
-        this.playerEnergy = Math.max(0, this.playerEnergy - CONFIG.MAX_ENERGY_DRAIN_RATE * this.playerMaxEnergy * dt);
-        this.playerVelocity = Math.max(0, this.playerVelocity - CONFIG.BASE_FRICTION * 0.2 * dt);
-
-        const sy = this.getSurfaceYAtX(this.playerWorldX);
-        if (this.playerWorldY >= sy) {
-            this.playerWorldY = sy; this.playerState = 'rolling'; this.jumpVelY = 0;
-            this.currentSegment = this.getSegmentAtX(this.playerWorldX);
-            const s2 = SEGMENTS[this.currentSegment];
-            this.distAlongSegment = (this.playerWorldX - s2.startX) / Math.cos(s2.angle);
-        }
-        // If airborne and past camera, only crash when landing — player can jump OVER the camera
-        if (this.playerWorldX >= this.levelData.cameraX && this.playerWorldY >= sy) {
-            this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); return;
-        }
-        // If past the entire level (way past camera), also crash
-        if (this.playerWorldX >= this.levelData.flatEndX) {
-            this.playerState = 'crashed'; this.stopTime = 0; this.onPlayerCrashed(); return;
-        }
-        if (this.playerVelocity <= 0 || this.playerEnergy <= 0) {
-            this.playerWorldY = this.getSurfaceYAtX(this.playerWorldX); this.playerVelocity = 0;
-            this.playerState = 'stopped'; this.stopTime = 0; this.onPlayerStopped(); return;
-        }
-        const hDist = hVel * dt;
-        this.rollRotation += (hDist / (2*Math.PI*CONFIG.PLAYER_RADIUS)) * Math.PI * 2;
-        this.drawPlayer(this.playerWorldX, this.playerWorldY - CONFIG.PLAYER_RADIUS, this.rollRotation);
-    }
-
-    showTouchButtons(visible) {
-        if (this.btnLeft) {
-            this.btnLeft.setVisible(visible);
-            this.btnRight.setVisible(visible);
-            this.btnJump.setVisible(visible);
-            // Also toggle the text labels
-            this.children.list.forEach(c => {
-                if (c.name === 'btnLeftTxt' || c.name === 'btnRightTxt' || c.name === 'btnJumpTxt') c.setVisible(visible);
-            });
-        }
-    }
-
     onPlayerStopped() {
-        this.showTouchButtons(false);
         // Snap player to the top of the nearest step so they sit ON the step, not inside the slope
         const ld = this.levelData;
         if (this.playerWorldX < ld.endX) {
@@ -2004,7 +1929,6 @@ class PlayScene extends Phaser.Scene {
     }
 
     onPlayerCrashed() {
-        this.showTouchButtons(false);
         // Project where the player would end up if they kept rolling through the camera
         // This determines crash tier — more momentum = worse crash
         let simVel = this.playerVelocity;
