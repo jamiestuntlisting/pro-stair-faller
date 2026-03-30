@@ -2518,42 +2518,46 @@ class StoreScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Build items into a container for scrolling
+        // Sort pads into sections: NEW (just unlocked), available (for purchase), owned (in stunt bag)
         const container = this.add.container(0, headerH);
         let curY = 10;
         const itemH = 160;
-        let lastCategory = '';
-        PADS.forEach((pad, i) => {
-            if (pad.minLevel != null && this.level < pad.minLevel) return;
-            if (pad.category !== lastCategory) {
-                lastCategory = pad.category;
-                container.add(this.add.text(40, curY, pad.category.toUpperCase(), {
-                    fontSize: '28px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 4,
-                }));
-                curY += 40;
-            }
-            const y = curY;
-            const owned = this.ownedPads.includes(i);
-            const canBuy = !owned && this.currency >= pad.cost;
 
+        // Categorize pads
+        const newPads = [];      // just unlocked at this level, not owned
+        const availPads = [];    // available but not new, not owned
+        const ownedPads = [];    // already purchased
+        PADS.forEach((pad, i) => {
+            if (pad.minLevel != null && this.level < pad.minLevel) return; // not yet available
+            if (this.ownedPads.includes(i)) {
+                ownedPads.push({ pad, i });
+            } else if (pad.minLevel != null && pad.minLevel >= this.level) {
+                newPads.push({ pad, i });
+            } else {
+                availPads.push({ pad, i });
+            }
+        });
+
+        // Helper to render a pad item
+        const renderPad = (pad, i, owned) => {
+            const y = curY;
+            const canBuy = !owned && this.currency >= pad.cost;
             const bg = this.add.rectangle(CONFIG.WIDTH/2, y + itemH/2, CONFIG.WIDTH - 30, itemH - 10, owned ? 0x2a3a2a : 0x1e1e2e);
             bg.setStrokeStyle(2, owned ? 0x44aa44 : 0x333355);
             container.add(bg);
-
             container.add(this.add.text(40, y + 14, pad.name, {
                 fontSize: '38px', fontFamily: 'Arial', color: owned ? '#66cc66' : '#ccccdd',
             }));
             container.add(this.add.text(40, y + 60, pad.desc, {
                 fontSize: '24px', fontFamily: 'Arial', color: '#666688',
             }));
-
             const dmgReduction = (pad.protection * 0.3).toFixed(1);
             container.add(this.add.text(40, y + 95, `+${pad.protection} protection  •  -${dmgReduction} damage/level`, {
                 fontSize: '22px', fontFamily: 'Arial', color: '#88cc88',
             }));
-
             if (owned) {
-                container.add(this.add.text(CONFIG.WIDTH - 120, y + itemH/2, 'OWNED', {
-                    fontSize: '32px', fontFamily: 'Arial', color: '#44aa44', fontStyle: 'bold',
+                container.add(this.add.text(CONFIG.WIDTH - 120, y + itemH/2, 'EQUIPPED', {
+                    fontSize: '28px', fontFamily: 'Arial', color: '#44aa44', fontStyle: 'bold',
                 }).setOrigin(0.5));
             } else {
                 const btnColor = canBuy ? 0x3a5a3a : 0x3a2a2a;
@@ -2563,7 +2567,6 @@ class StoreScene extends Phaser.Scene {
                 container.add(this.add.text(CONFIG.WIDTH - 120, y + itemH/2, `$${pad.cost}`, {
                     fontSize: '34px', fontFamily: 'Arial', color: canBuy ? '#88ff88' : '#884444', fontStyle: 'bold',
                 }).setOrigin(0.5));
-
                 if (canBuy) {
                     btn.setInteractive({ useHandCursor: true });
                     btn.on('pointerdown', () => {
@@ -2579,7 +2582,41 @@ class StoreScene extends Phaser.Scene {
                 }
             }
             curY += itemH;
-        });
+        };
+
+        // === NEW section ===
+        if (newPads.length > 0) {
+            const newBanner = this.add.rectangle(CONFIG.WIDTH/2, curY + 18, CONFIG.WIDTH - 30, 36, 0x4a2a0a);
+            newBanner.setStrokeStyle(2, 0xffaa44);
+            container.add(newBanner);
+            container.add(this.add.text(CONFIG.WIDTH/2, curY + 18, 'NEW', {
+                fontSize: '26px', fontFamily: 'Arial', color: '#ffcc44', fontStyle: 'bold', letterSpacing: 6,
+            }).setOrigin(0.5));
+            curY += 44;
+            newPads.forEach(({ pad, i }) => renderPad(pad, i, false));
+        }
+
+        // === Available section ===
+        if (availPads.length > 0) {
+            container.add(this.add.text(40, curY, 'AVAILABLE', {
+                fontSize: '26px', fontFamily: 'Arial', color: '#5566aa', letterSpacing: 4,
+            }));
+            curY += 38;
+            availPads.forEach(({ pad, i }) => renderPad(pad, i, false));
+        }
+
+        // === In Your Stunt Bag section ===
+        if (ownedPads.length > 0) {
+            curY += 10;
+            const bagBanner = this.add.rectangle(CONFIG.WIDTH/2, curY + 18, CONFIG.WIDTH - 30, 36, 0x1a2a1a);
+            bagBanner.setStrokeStyle(2, 0x44aa44);
+            container.add(bagBanner);
+            container.add(this.add.text(CONFIG.WIDTH/2, curY + 18, 'IN YOUR STUNT BAG', {
+                fontSize: '24px', fontFamily: 'Arial', color: '#66cc66', fontStyle: 'bold', letterSpacing: 4,
+            }).setOrigin(0.5));
+            curY += 44;
+            ownedPads.forEach(({ pad, i }) => renderPad(pad, i, true));
+        }
 
         // Enable scrolling via drag — track last pointer Y for smooth dragging
         const totalContentH = curY + 20;
