@@ -134,6 +134,16 @@ function buildLevel(levelDef) {
     return { segments, steps, stepW, stepH, markX, cameraX, flatEndX, angleDeg: levelDef.angleDeg, name: levelDef.name, startX, startY, endX, endY, sweetSpot: levelDef.sweetSpot || 0.5, greenW: levelDef.greenW || 0.08, yellowExtra: levelDef.yellowExtra || 0.06 };
 }
 
+function feetToStr(decimalFeet) {
+    if (decimalFeet < 1) {
+        const inches = Math.round(decimalFeet * 12);
+        return `${inches} inch${inches !== 1 ? 'es' : ''}`;
+    }
+    const ft = Math.floor(decimalFeet);
+    const inches = Math.round((decimalFeet - ft) * 12);
+    return `${ft}' ${inches}"`;
+}
+
 let SEGMENTS = buildLevel(LEVELS[0]).segments;
 
 // ============================================================
@@ -1990,7 +2000,7 @@ class PlayScene extends Phaser.Scene {
         this.showingScore = false;
         // Delay ALL text until after the lying-still beat
         this.time.delayedCall(CONFIG.STOP_BEAT_DURATION, () => {
-            this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${d.distFeet.toFixed(1)}ft from mark`).setVisible(true);
+            this.scoreText.setText(d.isPerfect ? '★ PERFECT! ★' : `${feetToStr(d.distFeet)} from mark`).setVisible(true);
             if (d.crashed) {
                 const tn = ['','WOBBLE','LEAN-BACK','TOPPLE!','FULL CRASH!','BULLDOZE!!'];
                 this.crashText.setText(`CRASHED! — ${tn[d.crashTier]}`).setVisible(true);
@@ -2006,7 +2016,7 @@ class PlayScene extends Phaser.Scene {
                 if (d.crashed) {
                     this.promptText.setText(`${hs}`).setVisible(true).setColor('#ffaa66');
                 } else {
-                    this.promptText.setText(`GOING AGAIN!`).setVisible(true).setColor('#ffffff');
+                    this.promptText.setText(`${feetToStr(d.distFeet)} off — GOING AGAIN!`).setVisible(true).setColor('#ffffff');
                 }
             } else {
                 this.promptText.setText(`${hs}\n${cs}`).setVisible(true).setColor('#aaaacc');
@@ -2128,18 +2138,19 @@ class PlayScene extends Phaser.Scene {
 // STORE SCENE
 // ============================================================
 const PADS = [
+    // Specialty (early)
+    { name: 'Newspaper & Tape', cost: 2, protection: 1, minLevel: 0, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
     // Knees & Elbows
-    { name: 'Foam Knee Pads', cost: 10, protection: 2, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
-    { name: 'Hard Shell Knee', cost: 60, protection: 6, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
-    { name: 'Elbow Guards', cost: 15, protection: 3, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
-    // Back & Core
-    { name: 'D3O Hip Pads', cost: 40, protection: 5, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
-    { name: 'Spine Protector', cost: 100, protection: 8, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    { name: 'Foam Knee Pads', cost: 10, protection: 2, minLevel: 0, category: 'Knees & Elbows', desc: 'Basic foam. Cheap but flimsy.' },
+    { name: 'Elbow Guards', cost: 20, protection: 3, minLevel: 2, category: 'Knees & Elbows', desc: 'Protects those elbows.' },
     // Head
-    { name: 'Wig w/ Hidden Pads', cost: 30, protection: 3, category: 'Head', desc: 'Fashion meets function.' },
-    // Specialty
-    { name: 'Newspaper & Tape', cost: 2, protection: 1, category: 'Specialty', desc: 'Desperate times... $1.50 from the corner store.' },
-    { name: 'Full Body Suit', cost: 150, protection: 12, category: 'Specialty', desc: 'The Michelin Man look.' },
+    { name: 'Wig w/ Hidden Pads', cost: 40, protection: 4, minLevel: 3, category: 'Head', desc: 'Fashion meets function.' },
+    // Back & Core
+    { name: 'D3O Hip Pads', cost: 75, protection: 6, minLevel: 4, category: 'Back & Core', desc: 'Smart foam. Hardens on impact.' },
+    { name: 'Hard Shell Knee', cost: 120, protection: 8, minLevel: 5, category: 'Knees & Elbows', desc: 'Serious knee protection.' },
+    { name: 'Spine Protector', cost: 200, protection: 12, minLevel: 7, category: 'Back & Core', desc: 'Keeps your back intact.' },
+    // Specialty (late)
+    { name: 'Full Body Suit', cost: 400, protection: 18, minLevel: 9, category: 'Specialty', desc: 'The Michelin Man look.' },
 ];
 
 class StoreScene extends Phaser.Scene {
@@ -2178,6 +2189,7 @@ class StoreScene extends Phaser.Scene {
         const itemH = 160;
         let lastCategory = '';
         PADS.forEach((pad, i) => {
+            if (pad.minLevel != null && this.level < pad.minLevel) return;
             if (pad.category !== lastCategory) {
                 lastCategory = pad.category;
                 container.add(this.add.text(40, curY, pad.category.toUpperCase(), {
