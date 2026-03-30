@@ -170,6 +170,8 @@ class PlayScene extends Phaser.Scene {
         ];
         this.skinTone = data.skinTone != null ? data.skinTone : Math.floor(Math.random() * SKIN_TONES.length);
         this.playerSkin = SKIN_TONES[this.skinTone % SKIN_TONES.length];
+        // Gender — random at game start, persists across levels
+        this.playerGender = data.playerGender != null ? data.playerGender : (Math.random() < 0.5 ? 'male' : 'female');
     }
 
     create() {
@@ -312,9 +314,9 @@ class PlayScene extends Phaser.Scene {
         } else if ((this.playerState === 'stopped' || this.playerState === 'crashed') && this.showingScore) {
             // Check fail conditions: crashed or >5ft from mark = must retry
             const failed = this.scoreData && (this.scoreData.crashed || this.scoreData.distFeet > 5);
-            const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection, skinTone: this.skinTone };
+            const passData = { health: this.currentHealth, currency: this.currency, ownedPads: this.ownedPads, protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender };
             if (this.currentHealth <= 0) {
-                this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0, skinTone: this.skinTone });
+                this.scene.start('PlayScene', { health: CONFIG.BASE_HEALTH, level: 0, currency: 0, skinTone: this.skinTone, playerGender: this.playerGender });
             } else if (failed) {
                 // Retry same level — increment take number, keep skin tone
                 this.scene.start('PlayScene', { ...passData, level: this.currentLevel, takeNumber: this.takeNumber + 1 });
@@ -1265,9 +1267,22 @@ class PlayScene extends Phaser.Scene {
         g.fillStyle(skin, 1);
         g.fillCircle(x, y - H*0.82, headR);
         // Hair
+        const isFemale = this.playerGender === 'female';
         g.fillStyle(hair, 1);
         g.fillCircle(x, y - H*0.85, headR * 0.92);
         g.fillRect(x - headR, y - H*0.88, headR*2, headR*0.5);
+        if (isFemale) {
+            // Longer hair sides
+            g.fillRect(x - headR*1.05, y - H*0.86, headR*0.3, headR*1.8);
+            g.fillRect(x + headR*0.75, y - H*0.86, headR*0.3, headR*1.8);
+            // Ponytail
+            g.lineStyle(headR*0.4, hair, 1);
+            g.beginPath();
+            g.moveTo(x, y - H*0.86);
+            g.lineTo(x - headR*0.3, y - H*0.75);
+            g.lineTo(x - headR*0.2, y - H*0.68);
+            g.strokePath();
+        }
         g.fillStyle(skin, 1);
         g.fillCircle(x, y - H*0.80, headR * 0.85);
         // Ear
@@ -1643,6 +1658,12 @@ class PlayScene extends Phaser.Scene {
         g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(headPos.x, headPos.y); g.strokePath();
         g.fillStyle(hair, 1);
         g.fillCircle(headPos.x, headPos.y, headR);
+        // Ponytail for female
+        if (this.playerGender === 'female') {
+            const tailEnd = rot(r*0.25, -r*0.55);
+            g.lineStyle(headR*0.35, hair, 1);
+            g.beginPath(); g.moveTo(headPos.x, headPos.y); g.lineTo(tailEnd.x, tailEnd.y); g.strokePath();
+        }
 
         // --- 6. ARMS — drawn LAST so they appear IN FRONT of body ---
         // Upper arm (sleeve)
@@ -1963,6 +1984,7 @@ class StoreScene extends Phaser.Scene {
         this.ownedPads = data.ownedPads || [];
         this.protection = data.protection || 0;
         this.skinTone = data.skinTone;
+        this.playerGender = data.playerGender;
     }
 
     create() {
@@ -2053,7 +2075,7 @@ class StoreScene extends Phaser.Scene {
             this.scene.start('PlayScene', {
                 health: this.health, level: this.level,
                 currency: this.currency, ownedPads: this.ownedPads,
-                protection: this.protection, skinTone: this.skinTone
+                protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender
             });
         });
 
@@ -2062,7 +2084,7 @@ class StoreScene extends Phaser.Scene {
             this.scene.start('PlayScene', {
                 health: this.health, level: this.level,
                 currency: this.currency, ownedPads: this.ownedPads,
-                protection: this.protection, skinTone: this.skinTone
+                protection: this.protection, skinTone: this.skinTone, playerGender: this.playerGender
             });
         });
     }
