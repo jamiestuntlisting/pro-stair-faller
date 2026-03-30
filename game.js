@@ -26,9 +26,9 @@ const CONFIG = {
     GRAVITY_ASSIST: 280,
     MAX_ENERGY_DRAIN_RATE: 0.55,
     SLOPE_DRAIN_REDUCTION: 0.6,
-    BOOST_ACCEL: 90,
+    BOOST_ACCEL: 150,
     BOOST_ENERGY_MULT: 1.4,
-    BRAKE_ACCEL: -130,
+    BRAKE_ACCEL: -200,
     BRAKE_ENERGY_MULT: 0.6,
     PIXELS_PER_FOOT: 30,
     PERFECT_THRESHOLD_PX: 20,
@@ -1891,8 +1891,9 @@ class PlayScene extends Phaser.Scene {
         // === BARREL ROLL — smooth rounded back with visible limbs ===
         // Tuck factor: 0=normal, 1=tight (boost), -1=open (brake)
         const tk = this.rollTuck || 0;
-        // Big visual change: tight=cannonball, open=starfish-ish
-        const s = tk * r * 0.35;
+        // Big visual change: tight=cannonball (boost, tk=1), open=starfish-ish (brake, tk=-1)
+        // Negate so positive tk pulls limbs IN (tighter), negative pushes them OUT (opener)
+        const s = -tk * r * 0.35;
 
         // KEY BODY POSITIONS — dramatically adjusted by tuck state
         const hipPos      = rot(0, r*0.38 + s*0.4);
