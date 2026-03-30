@@ -707,6 +707,12 @@ class PlayScene extends Phaser.Scene {
                     const limb = (collapsed || vomiting) ? 0 : Math.sin(t * 5);
 
                     if (collapsed) {
+                        // Persistent vomit puddle (from when he was throwing up)
+                        const vPudX = crawlX + H*0.21;
+                        g.fillStyle(0x8a9a2a, 0.7);
+                        g.fillEllipse(vPudX, cy + H*0.01, H*0.08, H*0.03);
+                        g.fillStyle(0x6a7a1a, 0.5);
+                        g.fillEllipse(vPudX, cy + H*0.01, H*0.04, H*0.018);
                         // Face down on ground — head stays on RIGHT (same as crawl direction)
                         const lieX = crawlX;
                         // Torso
@@ -814,43 +820,52 @@ class PlayScene extends Phaser.Scene {
                 }
             }
 
-            // === DIRECTOR — standing far right, screaming, broken arm ===
+            // === DIRECTOR — pacing far right, screaming, BOTH arms broken (forearms dangle) ===
             {
-                const stumbleDist = afterT * (isBulldoze ? H*0.9 : H*0.5);
-                const dirX = crew3X + stumbleDist;
-                // Draw custom — standing with one arm dangling broken, mouth open screaming
+                // Pacing back and forth, further from the action
+                const paceBase = crew3X + (isBulldoze ? H*1.2 : H*0.8);
+                const pace = Math.sin(t * 1.5) * H*0.25; // pacing back and forth
+                const dirX = paceBase + pace;
                 const skin = 0xd4a87c, dirCol = 0x2a2a3a, hair = 0x3a2a1a;
                 const dirHipY = cy - H*0.28, dirShY = cy - H*0.64;
-                // Legs
+                // Legs — walking motion while pacing
+                const legSwing = Math.sin(t * 3) * H*0.03;
                 g.lineStyle(H*0.035, dirCol, 1);
                 g.beginPath();
-                g.moveTo(dirX - H*0.03, dirHipY); g.lineTo(dirX - H*0.04, cy);
-                g.moveTo(dirX + H*0.03, dirHipY); g.lineTo(dirX + H*0.04, cy);
+                g.moveTo(dirX - H*0.03, dirHipY); g.lineTo(dirX - H*0.04 - legSwing, cy);
+                g.moveTo(dirX + H*0.03, dirHipY); g.lineTo(dirX + H*0.04 + legSwing, cy);
                 g.strokePath();
                 // Shoes
                 g.fillStyle(0x1a1a1a, 1);
-                g.fillRect(dirX - H*0.06, cy - H*0.008, H*0.05, H*0.02);
-                g.fillRect(dirX + H*0.02, cy - H*0.008, H*0.05, H*0.02);
-                // Torso
+                g.fillRect(dirX - H*0.06 - legSwing, cy - H*0.008, H*0.05, H*0.02);
+                g.fillRect(dirX + H*0.02 + legSwing, cy - H*0.008, H*0.05, H*0.02);
+                // Torso — slight sway
+                const bodySway = Math.sin(t * 2) * H*0.01;
                 g.lineStyle(H*0.10, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX, dirHipY); g.lineTo(dirX, dirShY); g.strokePath();
-                // ARMS UP — panicking, waving in the air
-                const wave = Math.sin(t * 6) * H*0.03;
-                // Left arm — raised up, shaking
+                g.beginPath(); g.moveTo(dirX, dirHipY); g.lineTo(dirX + bodySway, dirShY); g.strokePath();
+                // BOTH ARMS BROKEN — upper arms flail, forearms always dangle DOWN
+                const wave = Math.sin(t * 6) * H*0.06;
+                const wave2 = Math.sin(t * 6 + 2) * H*0.06;
+                // Left upper arm — flailing
+                const lElbowX = dirX - H*0.12 + wave;
+                const lElbowY = dirShY + H*0.02;
                 g.lineStyle(H*0.026, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(dirX - H*0.14, dirShY - H*0.12); g.strokePath();
+                g.beginPath(); g.moveTo(dirX - H*0.08, dirShY); g.lineTo(lElbowX, lElbowY); g.strokePath();
+                // Left FOREARM — dangling straight DOWN from elbow (broken!)
                 g.lineStyle(H*0.022, skin, 1);
-                g.beginPath(); g.moveTo(dirX - H*0.14, dirShY - H*0.12); g.lineTo(dirX - H*0.16 + wave, dirShY - H*0.24); g.strokePath();
+                g.beginPath(); g.moveTo(lElbowX, lElbowY); g.lineTo(lElbowX + Math.sin(t*8)*H*0.01, lElbowY + H*0.14); g.strokePath();
                 g.fillStyle(skin, 1);
-                g.fillCircle(dirX - H*0.16 + wave, dirShY - H*0.24, H*0.012);
-                // Right arm — raised up, shaking opposite phase
-                const wave2 = Math.sin(t * 6 + 1.5) * H*0.03;
+                g.fillCircle(lElbowX + Math.sin(t*8)*H*0.01, lElbowY + H*0.14, H*0.012);
+                // Right upper arm — flailing opposite
+                const rElbowX = dirX + H*0.12 + wave2;
+                const rElbowY = dirShY + H*0.02;
                 g.lineStyle(H*0.026, dirCol, 1);
-                g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(dirX + H*0.14, dirShY - H*0.14); g.strokePath();
+                g.beginPath(); g.moveTo(dirX + H*0.08, dirShY); g.lineTo(rElbowX, rElbowY); g.strokePath();
+                // Right FOREARM — dangling straight DOWN from elbow (broken!)
                 g.lineStyle(H*0.022, skin, 1);
-                g.beginPath(); g.moveTo(dirX + H*0.14, dirShY - H*0.14); g.lineTo(dirX + H*0.16 + wave2, dirShY - H*0.26); g.strokePath();
+                g.beginPath(); g.moveTo(rElbowX, rElbowY); g.lineTo(rElbowX + Math.sin(t*9)*H*0.01, rElbowY + H*0.14); g.strokePath();
                 g.fillStyle(skin, 1);
-                g.fillCircle(dirX + H*0.16 + wave2, dirShY - H*0.26, H*0.012);
+                g.fillCircle(rElbowX + Math.sin(t*9)*H*0.01, rElbowY + H*0.14, H*0.012);
                 // Neck + Head
                 g.fillStyle(skin, 1);
                 g.fillRect(dirX - H*0.014, dirShY - H*0.05, H*0.028, H*0.05);
