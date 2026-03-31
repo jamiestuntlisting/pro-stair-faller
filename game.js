@@ -232,9 +232,243 @@ function feetToStr(decimalFeet) {
 let SEGMENTS = buildLevel(LEVELS[0]).segments;
 
 // ============================================================
-// BOOT SCENE
+// SPLASH SCENE
 // ============================================================
-// No BootScene — PlayScene starts directly
+class SplashScene extends Phaser.Scene {
+    constructor() { super('SplashScene'); }
+
+    create() {
+        const W = CONFIG.WIDTH, H = CONFIG.HEIGHT;
+
+        // --- Build a looping staircase for the background animation ---
+        this.stairAngle = 35 * Math.PI / 180;
+        this.stepW = 52;
+        this.stepH = this.stepW * Math.tan(this.stairAngle);
+        this.numSteps = 70;
+        // Stairs go from top-left to bottom-right
+        this.stairStartX = -100;
+        this.stairStartY = -60;
+
+        // Random character appearance
+        const SKIN_TONES = [
+            { skin: 0xf5d0a9, skinDark: 0xd4a87c, hair: 0x2a1a0a },
+            { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x1a1008 },
+            { skin: 0xc68642, skinDark: 0xa06a30, hair: 0x0a0a06 },
+            { skin: 0x8d5524, skinDark: 0x6d3a14, hair: 0x0a0808 },
+            { skin: 0x5c3310, skinDark: 0x3c1a08, hair: 0x080606 },
+        ];
+        this.playerSkin = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
+        this.costume = COSTUMES[Math.floor(Math.random() * COSTUMES.length)];
+        this.playerGender = Math.random() < 0.5 ? 'male' : 'female';
+
+        // Character state
+        this.ballRadius = 68;
+        this.rollAngle = 0;
+        this.rollProgress = 0; // distance along staircase slope in pixels
+        this.rollSpeed = 260;  // px/sec along slope
+        this.rollTuck = 0;
+        this.tuckTime = 0;
+
+        // Graphics layer for stairs + character
+        this.gfx = this.add.graphics();
+
+        // --- Title text ---
+        // "StuntListing's" smaller above
+        this.add.text(W / 2, H * 0.13, "StuntListing's", {
+            fontSize: '28px', fontFamily: 'Arial, sans-serif', color: '#8888aa',
+            fontStyle: 'italic',
+        }).setOrigin(0.5).setDepth(10);
+
+        // "PRO STAIR FALLER" big and bold
+        const titleText = this.add.text(W / 2, H * 0.24, 'PRO STAIR FALLER', {
+            fontSize: '72px', fontFamily: 'Arial Black, Impact, sans-serif', color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 6,
+        }).setOrigin(0.5).setDepth(10);
+
+        // Subtle pulsing glow on title
+        this.tweens.add({
+            targets: titleText,
+            alpha: { from: 1, to: 0.8 },
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        // --- "Tap to start" prompt ---
+        this.tapText = this.add.text(W / 2, H * 0.88, 'Tap to Start', {
+            fontSize: '24px', fontFamily: 'Arial, sans-serif', color: '#aaaacc',
+        }).setOrigin(0.5).setDepth(10);
+
+        this.tweens.add({
+            targets: this.tapText,
+            alpha: { from: 1, to: 0.3 },
+            duration: 900,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        // --- Tap/click to continue ---
+        this.canProceed = false;
+        this.time.delayedCall(600, () => { this.canProceed = true; });
+        this.input.on('pointerdown', () => {
+            if (!this.canProceed) return;
+            this.scene.start('PlayScene');
+        });
+    }
+
+    update(time, delta) {
+        const dt = Math.min(delta, 33) / 1000;
+        const g = this.gfx;
+        g.clear();
+
+        const W = CONFIG.WIDTH, H = CONFIG.HEIGHT;
+        const cosA = Math.cos(this.stairAngle), sinA = Math.sin(this.stairAngle);
+        const stepW = this.stepW, stepH = this.stepH;
+
+        // Advance roll
+        this.rollProgress += this.rollSpeed * dt;
+        this.rollAngle += (this.rollSpeed * dt) / this.ballRadius;
+
+        // Tuck animation — slowly oscillate for visual interest
+        this.tuckTime += dt;
+        this.rollTuck = Math.sin(this.tuckTime * 1.8) * 0.6;
+
+        // Randomize appearance periodically (every ~1200px of progress)
+        const loopLen = 1200;
+        const prevLoop = Math.floor((this.rollProgress - this.rollSpeed * dt) / loopLen);
+        const curLoop = Math.floor(this.rollProgress / loopLen);
+        if (curLoop > prevLoop) {
+            const SKIN_TONES = [
+                { skin: 0xf5d0a9, skinDark: 0xd4a87c, hair: 0x2a1a0a },
+                { skin: 0xd4a87c, skinDark: 0xb08860, hair: 0x1a1008 },
+                { skin: 0xc68642, skinDark: 0xa06a30, hair: 0x0a0a06 },
+                { skin: 0x8d5524, skinDark: 0x6d3a14, hair: 0x0a0808 },
+                { skin: 0x5c3310, skinDark: 0x3c1a08, hair: 0x080606 },
+            ];
+            this.playerSkin = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
+            this.costume = COSTUMES[Math.floor(Math.random() * COSTUMES.length)];
+            this.playerGender = Math.random() < 0.5 ? 'male' : 'female';
+        }
+
+        // Ball position along slope (infinite — never wraps)
+        const ballSlopeX = this.rollProgress;
+        const ballWorldX = this.stairStartX + ballSlopeX * cosA;
+        const ballWorldY = this.stairStartY + ballSlopeX * sinA;
+
+        // Camera follows the ball — center it
+        const camX = ballWorldX - W * 0.45;
+        const camY = ballWorldY - H * 0.5;
+
+        // --- Draw infinite stairs relative to camera ---
+        const stairColor = 0x555566;
+        const wallColor = 0x3a3a4a;
+        const floorColor = 0x444455;
+
+        // Figure out which stair index the camera left edge corresponds to
+        const firstStepIdx = Math.floor((camX - this.stairStartX) / stepW) - 2;
+        const visibleSteps = Math.ceil(W / stepW) + 6;
+
+        for (let j = 0; j < visibleSteps; j++) {
+            const i = firstStepIdx + j;
+            const sx = this.stairStartX + i * stepW - camX;
+            const sy = this.stairStartY + i * stepH - camY;
+
+            // Step tread (horizontal surface)
+            g.fillStyle(stairColor, 1);
+            g.fillRect(sx, sy, stepW + 1, 4);
+
+            // Step riser (vertical surface)
+            g.fillStyle(wallColor, 1);
+            g.fillRect(sx + stepW - 1, sy, 4, stepH + 1);
+
+            // Fill body of step
+            g.fillStyle(floorColor, 0.5);
+            g.fillRect(sx, sy + 4, stepW, stepH - 3);
+        }
+
+        // --- Draw the rolling character ---
+        const bx = ballWorldX - camX;
+        const by = ballWorldY - camY - this.ballRadius * 0.6; // sit on top of stair surface
+        this.drawSplashBall(g, bx, by, this.rollAngle);
+    }
+
+    drawSplashBall(g, x, y, rotation) {
+        const r = this.ballRadius;
+        const c = this.costume;
+        const ps = this.playerSkin;
+        const skin = ps.skin, skinDark = ps.skinDark;
+        const shirt = c.shirt, shirtDark = ((shirt >> 16 & 0xff) * 0.7 | 0) << 16 | ((shirt >> 8 & 0xff) * 0.7 | 0) << 8 | ((shirt & 0xff) * 0.7 | 0);
+        const pants = c.pants;
+        const hair = ps.hair || 0x2a1a0a, shoe = 0x1a1a1a;
+        const cos = Math.cos(rotation), sin = Math.sin(rotation);
+        const rot = (px, py) => ({ x: x + cos*px - sin*py, y: y + sin*px + cos*py });
+
+        // Shadow
+        g.fillStyle(0x000000, 0.2);
+        g.fillEllipse(x, y + r + 6, r * 0.9, 8);
+
+        const tk = this.rollTuck || 0;
+        const s = -tk * r * 0.35;
+
+        const hipPos      = rot(0, r*0.38 + s*0.4);
+        const kneePos     = rot(r*0.30 + s*1.2, -r*0.05 + s*0.8);
+        const footPos     = rot(r*0.12 + s*1.0, -r*0.35 + s*0.7);
+        const headPos     = rot(r*0.08 + s*0.4, -r*0.42 - s*0.5);
+        const shoulderPos = rot(-r*0.18 - s*0.2, -r*0.35);
+        const elbowPos    = rot(r*0.15 + s*0.8, r*0.10 + s*0.5);
+        const handPos     = rot(r*0.25 + s*0.9, -r*0.12 + s*0.6);
+
+        // Back
+        g.fillStyle(shirt, 1);
+        for (let i = 0; i <= 4; i++) {
+            const t = i / 4;
+            const bulge = Math.sin(t * Math.PI) * r * 0.20;
+            const bx2 = rot(-r*0.25 - bulge, -r*0.40 + t * r * 0.80);
+            const rad = r * 0.22 + Math.sin(t * Math.PI) * r * 0.04;
+            g.fillCircle(bx2.x, bx2.y, rad);
+        }
+        g.fillStyle(shirtDark, 0.15);
+        const shadowP = rot(-r*0.45, 0);
+        g.fillCircle(shadowP.x, shadowP.y, r * 0.15);
+
+        // Thighs
+        g.lineStyle(r * 0.18, pants, 1);
+        g.beginPath(); g.moveTo(hipPos.x, hipPos.y); g.lineTo(kneePos.x, kneePos.y); g.strokePath();
+        g.fillStyle(pants, 1);
+        g.fillCircle(kneePos.x, kneePos.y, r * 0.12);
+
+        // Shins
+        g.lineStyle(r * 0.14, pants, 1);
+        g.beginPath(); g.moveTo(kneePos.x, kneePos.y); g.lineTo(footPos.x, footPos.y); g.strokePath();
+
+        // Shoes
+        g.fillStyle(shoe, 1);
+        g.fillCircle(footPos.x, footPos.y, r * 0.10);
+
+        // Head
+        const headR = r * 0.22;
+        g.lineStyle(r * 0.10, skin, 1);
+        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(headPos.x, headPos.y); g.strokePath();
+        g.fillStyle(hair, 1);
+        g.fillCircle(headPos.x, headPos.y, headR);
+        if (this.playerGender === 'female') {
+            const tailEnd = rot(r*0.25, -r*0.55);
+            g.lineStyle(headR*0.35, hair, 1);
+            g.beginPath(); g.moveTo(headPos.x, headPos.y); g.lineTo(tailEnd.x, tailEnd.y); g.strokePath();
+        }
+
+        // Arms
+        g.lineStyle(r * 0.12, shirt, 1);
+        g.beginPath(); g.moveTo(shoulderPos.x, shoulderPos.y); g.lineTo(elbowPos.x, elbowPos.y); g.strokePath();
+        g.lineStyle(r * 0.10, skin, 1);
+        g.beginPath(); g.moveTo(elbowPos.x, elbowPos.y); g.lineTo(handPos.x, handPos.y); g.strokePath();
+        g.fillStyle(skin, 1);
+        g.fillCircle(handPos.x, handPos.y, r * 0.08);
+    }
+}
 
 // ============================================================
 // PLAY SCENE
@@ -2735,5 +2969,5 @@ const game = new Phaser.Game({
     backgroundColor: CONFIG.BG_COLOR, parent: document.body,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { touch: true, activePointers: 3 },
-    scene: [PlayScene, StoreScene],
+    scene: [SplashScene, PlayScene, StoreScene],
 });
