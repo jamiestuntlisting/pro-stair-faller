@@ -18,62 +18,65 @@ function playCrashThump(tier) {
     const now = ctx.currentTime;
     const t = Math.min(tier, 5);
 
-    // === 1. BIG INITIAL IMPACT — deep sub-bass thud ===
-    const impactDur = 0.5 + t * 0.15;
+    // === THUD — plays for all tiers, scales with severity ===
+    // Deep sub-bass impact
+    const impactDur = 0.3 + t * 0.1;
     const impactGain = ctx.createGain();
     impactGain.connect(ctx.destination);
-    impactGain.gain.setValueAtTime(1.0, now);
+    impactGain.gain.setValueAtTime(0.8 + t * 0.05, now);
     impactGain.gain.exponentialRampToValueAtTime(0.01, now + impactDur);
     const impactOsc = ctx.createOscillator();
     impactOsc.type = 'sine';
-    impactOsc.frequency.setValueAtTime(50 - t * 3, now);
+    impactOsc.frequency.setValueAtTime(55 - t * 4, now);
     impactOsc.frequency.exponentialRampToValueAtTime(18, now + impactDur);
     impactOsc.connect(impactGain);
     impactOsc.start(now);
     impactOsc.stop(now + impactDur);
 
-    // === 2. BODY THUD — secondary mid-frequency hit slightly delayed ===
-    const thud2Delay = 0.06;
-    const thud2Dur = 0.35;
+    // Secondary body thud
+    const thud2Delay = 0.05;
+    const thud2Dur = 0.25;
     const thud2Gain = ctx.createGain();
     thud2Gain.connect(ctx.destination);
     thud2Gain.gain.setValueAtTime(0, now);
-    thud2Gain.gain.setValueAtTime(0.6, now + thud2Delay);
+    thud2Gain.gain.setValueAtTime(0.5, now + thud2Delay);
     thud2Gain.gain.exponentialRampToValueAtTime(0.01, now + thud2Delay + thud2Dur);
     const thud2Osc = ctx.createOscillator();
     thud2Osc.type = 'triangle';
-    thud2Osc.frequency.setValueAtTime(120, now + thud2Delay);
+    thud2Osc.frequency.setValueAtTime(110, now + thud2Delay);
     thud2Osc.frequency.exponentialRampToValueAtTime(35, now + thud2Delay + thud2Dur);
     thud2Osc.connect(thud2Gain);
     thud2Osc.start(now);
     thud2Osc.stop(now + thud2Delay + thud2Dur + 0.01);
 
-    // === 3. DEBRIS/CRUNCH NOISE — longer noise burst with filtering ===
-    const crunchDur = 0.5 + t * 0.12;
+    // Crunch noise
+    const crunchDur = 0.2 + t * 0.06;
     const crunchSize = ctx.sampleRate * crunchDur | 0;
     const crunchBuf = ctx.createBuffer(1, crunchSize, ctx.sampleRate);
     const crunchData = crunchBuf.getChannelData(0);
     for (let i = 0; i < crunchSize; i++) {
-        const env = Math.exp(-i / (crunchSize * 0.3));
-        crunchData[i] = (Math.random() * 2 - 1) * env;
+        crunchData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (crunchSize * 0.25));
     }
     const crunchSrc = ctx.createBufferSource();
     crunchSrc.buffer = crunchBuf;
     const crunchGn = ctx.createGain();
-    crunchGn.gain.setValueAtTime(0.55 + t * 0.05, now);
+    crunchGn.gain.setValueAtTime(0.4 + t * 0.05, now);
     crunchGn.gain.exponentialRampToValueAtTime(0.01, now + crunchDur);
     const crunchLP = ctx.createBiquadFilter();
     crunchLP.type = 'lowpass';
-    crunchLP.frequency.value = 600 + t * 120;
+    crunchLP.frequency.value = 500 + t * 100;
     crunchSrc.connect(crunchLP);
     crunchLP.connect(crunchGn);
     crunchGn.connect(ctx.destination);
     crunchSrc.start(now);
     crunchSrc.stop(now + crunchDur);
 
-    // === 4. GLASS/METAL SHATTER — camera lens breaking ===
+    // === TIER 5 ONLY — full catastrophe: moaning, shatter, clang, debris ===
+    if (t < 5) return;
+
+    // Glass/metal shatter
     const shatterDelay = 0.03;
-    const shatterDur = 0.6 + t * 0.15;
+    const shatterDur = 0.8;
     const shatterSize = ctx.sampleRate * shatterDur | 0;
     const shatterBuf = ctx.createBuffer(1, shatterSize, ctx.sampleRate);
     const shatterData = shatterBuf.getChannelData(0);
@@ -86,7 +89,7 @@ function playCrashThump(tier) {
     shatterSrc.buffer = shatterBuf;
     const shatterGn = ctx.createGain();
     shatterGn.gain.setValueAtTime(0, now);
-    shatterGn.gain.setValueAtTime(0.35 + t * 0.04, now + shatterDelay);
+    shatterGn.gain.setValueAtTime(0.4, now + shatterDelay);
     shatterGn.gain.exponentialRampToValueAtTime(0.01, now + shatterDelay + shatterDur);
     const shatterHP = ctx.createBiquadFilter();
     shatterHP.type = 'highpass';
@@ -98,7 +101,7 @@ function playCrashThump(tier) {
     shatterSrc.start(now);
     shatterSrc.stop(now + shatterDelay + shatterDur);
 
-    // === 5. METALLIC CLANG — camera tripod hitting the ground ===
+    // Metallic clang — tripod
     const clangDelay = 0.10;
     const clangDur = 0.8;
     const clangGn = ctx.createGain();
@@ -121,9 +124,8 @@ function playCrashThump(tier) {
         o.stop(now + clangDelay + clangDur + 0.01);
     }
 
-    // === 6. SECONDARY TUMBLE — rolling debris / things falling over ===
-    const tumbleDelay = 0.2;
-    const tumbleDur = 1.0 + t * 0.25;
+    // Rolling debris
+    const tumbleDur = 1.5;
     const tumbleSize = ctx.sampleRate * tumbleDur | 0;
     const tumbleBuf = ctx.createBuffer(1, tumbleSize, ctx.sampleRate);
     const tumbleData = tumbleBuf.getChannelData(0);
@@ -136,58 +138,49 @@ function playCrashThump(tier) {
     tumbleSrc.buffer = tumbleBuf;
     const tumbleGn = ctx.createGain();
     tumbleGn.gain.setValueAtTime(0, now);
-    tumbleGn.gain.setValueAtTime(0.22, now + tumbleDelay);
-    tumbleGn.gain.exponentialRampToValueAtTime(0.01, now + tumbleDelay + tumbleDur);
+    tumbleGn.gain.setValueAtTime(0.22, now + 0.2);
+    tumbleGn.gain.exponentialRampToValueAtTime(0.01, now + 0.2 + tumbleDur);
     const tumbleLP = ctx.createBiquadFilter();
     tumbleLP.type = 'lowpass';
     tumbleLP.frequency.value = 700;
     tumbleSrc.connect(tumbleLP);
     tumbleLP.connect(tumbleGn);
     tumbleGn.connect(ctx.destination);
-    tumbleSrc.start(now + tumbleDelay);
-    tumbleSrc.stop(now + tumbleDelay + tumbleDur + 0.01);
+    tumbleSrc.start(now + 0.2);
+    tumbleSrc.stop(now + 0.2 + tumbleDur + 0.01);
 
-    // === 7. HUMAN MOANING/GROANING — always at least 2, up to 4 for worst crashes ===
-    const numMoans = 2 + Math.min(t - 1, 2); // tier 1=2, tier 2=3, tier 3+=4
-    for (let m = 0; m < numMoans; m++) {
-        // First moan comes quickly, rest are spaced out
+    // Human moaning — 4 moans: yelp then groans
+    for (let m = 0; m < 4; m++) {
         const moanDelay = 0.35 + m * (0.55 + Math.random() * 0.4);
-        const moanDur = 0.7 + Math.random() * 0.6 + t * 0.12;
-        // Vary pitch: some higher (yelps), some lower (groans)
-        const isHighPitch = m === 0; // first one is a sharp yelp
+        const moanDur = 0.8 + Math.random() * 0.6;
+        const isHighPitch = m === 0;
         const moanPitch = isHighPitch ? (180 + Math.random() * 80) : (85 + Math.random() * 50);
 
-        // Master gain — louder base volume so it's always audible
         const moanMaster = ctx.createGain();
         moanMaster.connect(ctx.destination);
-        const mVol = 0.30 + t * 0.04;
-        moanMaster.gain.setValueAtTime(0, now + moanDelay);
-        // First moan: sharp attack (yelp). Others: softer fade in
+        const mVol = 0.35;
         const attackTime = isHighPitch ? 0.04 : 0.15;
+        moanMaster.gain.setValueAtTime(0, now + moanDelay);
         moanMaster.gain.linearRampToValueAtTime(mVol, now + moanDelay + attackTime);
         moanMaster.gain.setValueAtTime(mVol * 0.85, now + moanDelay + moanDur * 0.5);
         moanMaster.gain.exponentialRampToValueAtTime(0.01, now + moanDelay + moanDur);
 
-        // Voice source — sawtooth for groans, triangle for yelps
         const voiceOsc = ctx.createOscillator();
         voiceOsc.type = isHighPitch ? 'triangle' : 'sawtooth';
         if (isHighPitch) {
-            // Yelp: starts high, drops fast
             voiceOsc.frequency.setValueAtTime(moanPitch * 1.4, now + moanDelay);
             voiceOsc.frequency.exponentialRampToValueAtTime(moanPitch * 0.6, now + moanDelay + moanDur * 0.3);
             voiceOsc.frequency.linearRampToValueAtTime(moanPitch * 0.5, now + moanDelay + moanDur);
         } else {
-            // Groan: slow descending pitch with wobble
             voiceOsc.frequency.setValueAtTime(moanPitch * (1.05 + Math.random() * 0.1), now + moanDelay);
             voiceOsc.frequency.linearRampToValueAtTime(moanPitch * (0.7 + Math.random() * 0.1), now + moanDelay + moanDur);
         }
 
-        // Formant filters — cycle through vowel sounds
         const vowels = [
-            { f1: 750, f2: 1200 },   // "aah" (yelp)
-            { f1: 400, f2: 850 },    // "ohh"
-            { f1: 300, f2: 650 },    // "uhh"
-            { f1: 500, f2: 1000 },   // "ehh"
+            { f1: 750, f2: 1200 },
+            { f1: 400, f2: 850 },
+            { f1: 300, f2: 650 },
+            { f1: 500, f2: 1000 },
         ];
         const vowel = vowels[m % vowels.length];
 
@@ -195,7 +188,6 @@ function playCrashThump(tier) {
         formant1.type = 'bandpass';
         formant1.frequency.value = vowel.f1;
         formant1.Q.value = 4;
-
         const formant2 = ctx.createBiquadFilter();
         formant2.type = 'bandpass';
         formant2.frequency.value = vowel.f2;
@@ -208,25 +200,20 @@ function playCrashThump(tier) {
         formant1.connect(fmtMix);
         formant2.connect(fmtMix);
         fmtMix.connect(moanMaster);
-
         voiceOsc.start(now + moanDelay);
         voiceOsc.stop(now + moanDelay + moanDur + 0.01);
 
-        // Breathy noise layer — louder for realism
-        const breathDur = moanDur;
-        const breathSize = ctx.sampleRate * breathDur | 0;
+        // Breath layer
+        const breathSize = ctx.sampleRate * moanDur | 0;
         const breathBuf = ctx.createBuffer(1, breathSize, ctx.sampleRate);
-        const breathData = breathBuf.getChannelData(0);
-        for (let i = 0; i < breathSize; i++) {
-            breathData[i] = (Math.random() * 2 - 1);
-        }
+        const bd = breathBuf.getChannelData(0);
+        for (let i = 0; i < breathSize; i++) bd[i] = (Math.random() * 2 - 1);
         const breathSrc = ctx.createBufferSource();
         breathSrc.buffer = breathBuf;
         const breathGn = ctx.createGain();
-        const breathVol = isHighPitch ? 0.10 : 0.08;
         breathGn.gain.setValueAtTime(0, now + moanDelay);
-        breathGn.gain.linearRampToValueAtTime(breathVol, now + moanDelay + attackTime);
-        breathGn.gain.exponentialRampToValueAtTime(0.01, now + moanDelay + breathDur);
+        breathGn.gain.linearRampToValueAtTime(isHighPitch ? 0.10 : 0.08, now + moanDelay + attackTime);
+        breathGn.gain.exponentialRampToValueAtTime(0.01, now + moanDelay + moanDur);
         const breathBP = ctx.createBiquadFilter();
         breathBP.type = 'bandpass';
         breathBP.frequency.value = vowel.f1 * 1.5;
@@ -235,28 +222,24 @@ function playCrashThump(tier) {
         breathBP.connect(breathGn);
         breathGn.connect(moanMaster);
         breathSrc.start(now + moanDelay);
-        breathSrc.stop(now + moanDelay + breathDur + 0.01);
+        breathSrc.stop(now + moanDelay + moanDur + 0.01);
     }
 
-    // === 8. LATE SETTLING — small thuds as debris settles (higher tiers) ===
-    if (t >= 2) {
-        const numThuds = t - 1; // 1-4 late thuds
-        for (let j = 0; j < numThuds; j++) {
-            const td = 1.2 + j * (0.3 + Math.random() * 0.25);
-            const tDur = 0.15;
-            const tGn = ctx.createGain();
-            tGn.connect(ctx.destination);
-            tGn.gain.setValueAtTime(0, now + td);
-            tGn.gain.setValueAtTime(0.15 - j * 0.03, now + td + 0.01);
-            tGn.gain.exponentialRampToValueAtTime(0.01, now + td + tDur);
-            const tOsc = ctx.createOscillator();
-            tOsc.type = 'sine';
-            tOsc.frequency.setValueAtTime(80 + j * 20, now + td);
-            tOsc.frequency.exponentialRampToValueAtTime(30, now + td + tDur);
-            tOsc.connect(tGn);
-            tOsc.start(now + td);
-            tOsc.stop(now + td + tDur + 0.01);
-        }
+    // Late settling thuds
+    for (let j = 0; j < 3; j++) {
+        const td = 1.4 + j * (0.3 + Math.random() * 0.25);
+        const tGn = ctx.createGain();
+        tGn.connect(ctx.destination);
+        tGn.gain.setValueAtTime(0, now + td);
+        tGn.gain.setValueAtTime(0.12 - j * 0.03, now + td + 0.01);
+        tGn.gain.exponentialRampToValueAtTime(0.01, now + td + 0.15);
+        const tOsc = ctx.createOscillator();
+        tOsc.type = 'sine';
+        tOsc.frequency.setValueAtTime(80 + j * 20, now + td);
+        tOsc.frequency.exponentialRampToValueAtTime(30, now + td + 0.15);
+        tOsc.connect(tGn);
+        tOsc.start(now + td);
+        tOsc.stop(now + td + 0.16);
     }
 }
 
