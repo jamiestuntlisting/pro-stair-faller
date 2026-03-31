@@ -71,12 +71,13 @@ function playCrashThump(tier) {
     crunchSrc.start(now);
     crunchSrc.stop(now + crunchDur);
 
-    // === TIER 5 ONLY — full catastrophe: moaning, shatter, clang, debris ===
-    if (t < 5) return;
+    // === TIER 4-5 — full catastrophe: moaning, shatter, clang, debris ===
+    if (t < 4) return;
+    const isBulldoze = t >= 5;
 
     // Glass/metal shatter
     const shatterDelay = 0.03;
-    const shatterDur = 0.8;
+    const shatterDur = isBulldoze ? 0.8 : 0.5;
     const shatterSize = ctx.sampleRate * shatterDur | 0;
     const shatterBuf = ctx.createBuffer(1, shatterSize, ctx.sampleRate);
     const shatterData = shatterBuf.getChannelData(0);
@@ -89,7 +90,7 @@ function playCrashThump(tier) {
     shatterSrc.buffer = shatterBuf;
     const shatterGn = ctx.createGain();
     shatterGn.gain.setValueAtTime(0, now);
-    shatterGn.gain.setValueAtTime(0.4, now + shatterDelay);
+    shatterGn.gain.setValueAtTime(isBulldoze ? 0.4 : 0.25, now + shatterDelay);
     shatterGn.gain.exponentialRampToValueAtTime(0.01, now + shatterDelay + shatterDur);
     const shatterHP = ctx.createBiquadFilter();
     shatterHP.type = 'highpass';
@@ -125,7 +126,7 @@ function playCrashThump(tier) {
     }
 
     // Rolling debris
-    const tumbleDur = 1.5;
+    const tumbleDur = isBulldoze ? 1.5 : 0.8;
     const tumbleSize = ctx.sampleRate * tumbleDur | 0;
     const tumbleBuf = ctx.createBuffer(1, tumbleSize, ctx.sampleRate);
     const tumbleData = tumbleBuf.getChannelData(0);
@@ -149,8 +150,9 @@ function playCrashThump(tier) {
     tumbleSrc.start(now + 0.2);
     tumbleSrc.stop(now + 0.2 + tumbleDur + 0.01);
 
-    // Human moaning — 4 moans: yelp then groans
-    for (let m = 0; m < 4; m++) {
+    // Human moaning — tier 4: 2 moans, tier 5: 4 moans
+    const numMoans = isBulldoze ? 4 : 2;
+    for (let m = 0; m < numMoans; m++) {
         const moanDelay = 0.35 + m * (0.55 + Math.random() * 0.4);
         const moanDur = 0.8 + Math.random() * 0.6;
         const isHighPitch = m === 0;
@@ -225,7 +227,8 @@ function playCrashThump(tier) {
         breathSrc.stop(now + moanDelay + moanDur + 0.01);
     }
 
-    // Late settling thuds
+    // Late settling thuds — tier 5 only
+    if (!isBulldoze) return;
     for (let j = 0; j < 3; j++) {
         const td = 1.4 + j * (0.3 + Math.random() * 0.25);
         const tGn = ctx.createGain();
