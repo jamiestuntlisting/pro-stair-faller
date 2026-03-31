@@ -16,40 +16,248 @@ function getAudioCtx() {
 function playCrashThump(tier) {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
-    // Big low thump — pitch and volume scale with crash tier
-    const baseFreq = 60 - tier * 5;  // lower = worse crash
-    const duration = 0.3 + tier * 0.1;
-    const gain = ctx.createGain();
-    gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.8 + tier * 0.1, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-    // Low thump oscillator
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(baseFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(20, now + duration);
-    osc.connect(gain);
-    osc.start(now);
-    osc.stop(now + duration);
-    // Noise burst for the "splat" — short crackle
-    const bufSize = ctx.sampleRate * 0.15;
-    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufSize);
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuf;
-    const noiseGain = ctx.createGain();
-    noiseGain.connect(ctx.destination);
-    noiseGain.gain.setValueAtTime(0.4 + tier * 0.08, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-    // Low-pass filter to make it thuddy not hissy
-    const lpf = ctx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 400 + tier * 100;
-    noise.connect(lpf);
-    lpf.connect(noiseGain);
-    noise.start(now);
-    noise.stop(now + 0.15);
+    const t = Math.min(tier, 5);
+
+    // === 1. BIG INITIAL IMPACT — deep sub-bass thud ===
+    const impactDur = 0.5 + t * 0.15;
+    const impactGain = ctx.createGain();
+    impactGain.connect(ctx.destination);
+    impactGain.gain.setValueAtTime(1.0, now);
+    impactGain.gain.exponentialRampToValueAtTime(0.01, now + impactDur);
+    const impactOsc = ctx.createOscillator();
+    impactOsc.type = 'sine';
+    impactOsc.frequency.setValueAtTime(50 - t * 3, now);
+    impactOsc.frequency.exponentialRampToValueAtTime(18, now + impactDur);
+    impactOsc.connect(impactGain);
+    impactOsc.start(now);
+    impactOsc.stop(now + impactDur);
+
+    // === 2. BODY THUD — secondary mid-frequency hit slightly delayed ===
+    const thud2Delay = 0.06;
+    const thud2Dur = 0.35;
+    const thud2Gain = ctx.createGain();
+    thud2Gain.connect(ctx.destination);
+    thud2Gain.gain.setValueAtTime(0, now);
+    thud2Gain.gain.setValueAtTime(0.6, now + thud2Delay);
+    thud2Gain.gain.exponentialRampToValueAtTime(0.01, now + thud2Delay + thud2Dur);
+    const thud2Osc = ctx.createOscillator();
+    thud2Osc.type = 'triangle';
+    thud2Osc.frequency.setValueAtTime(120, now + thud2Delay);
+    thud2Osc.frequency.exponentialRampToValueAtTime(35, now + thud2Delay + thud2Dur);
+    thud2Osc.connect(thud2Gain);
+    thud2Osc.start(now);
+    thud2Osc.stop(now + thud2Delay + thud2Dur + 0.01);
+
+    // === 3. DEBRIS/CRUNCH NOISE — longer noise burst with filtering ===
+    const crunchDur = 0.5 + t * 0.12;
+    const crunchSize = ctx.sampleRate * crunchDur | 0;
+    const crunchBuf = ctx.createBuffer(1, crunchSize, ctx.sampleRate);
+    const crunchData = crunchBuf.getChannelData(0);
+    for (let i = 0; i < crunchSize; i++) {
+        const env = Math.exp(-i / (crunchSize * 0.3));
+        crunchData[i] = (Math.random() * 2 - 1) * env;
+    }
+    const crunchSrc = ctx.createBufferSource();
+    crunchSrc.buffer = crunchBuf;
+    const crunchGn = ctx.createGain();
+    crunchGn.gain.setValueAtTime(0.55 + t * 0.05, now);
+    crunchGn.gain.exponentialRampToValueAtTime(0.01, now + crunchDur);
+    const crunchLP = ctx.createBiquadFilter();
+    crunchLP.type = 'lowpass';
+    crunchLP.frequency.value = 600 + t * 120;
+    crunchSrc.connect(crunchLP);
+    crunchLP.connect(crunchGn);
+    crunchGn.connect(ctx.destination);
+    crunchSrc.start(now);
+    crunchSrc.stop(now + crunchDur);
+
+    // === 4. GLASS/METAL SHATTER — camera lens breaking ===
+    const shatterDelay = 0.03;
+    const shatterDur = 0.6 + t * 0.15;
+    const shatterSize = ctx.sampleRate * shatterDur | 0;
+    const shatterBuf = ctx.createBuffer(1, shatterSize, ctx.sampleRate);
+    const shatterData = shatterBuf.getChannelData(0);
+    for (let i = 0; i < shatterSize; i++) {
+        const env = Math.exp(-i / (shatterSize * 0.18));
+        const ping = Math.sin(i / ctx.sampleRate * 2 * Math.PI * (2200 + Math.random() * 400)) * 0.3;
+        shatterData[i] = ((Math.random() * 2 - 1) * 0.7 + ping) * env;
+    }
+    const shatterSrc = ctx.createBufferSource();
+    shatterSrc.buffer = shatterBuf;
+    const shatterGn = ctx.createGain();
+    shatterGn.gain.setValueAtTime(0, now);
+    shatterGn.gain.setValueAtTime(0.35 + t * 0.04, now + shatterDelay);
+    shatterGn.gain.exponentialRampToValueAtTime(0.01, now + shatterDelay + shatterDur);
+    const shatterHP = ctx.createBiquadFilter();
+    shatterHP.type = 'highpass';
+    shatterHP.frequency.value = 1600;
+    shatterHP.Q.value = 0.8;
+    shatterSrc.connect(shatterHP);
+    shatterHP.connect(shatterGn);
+    shatterGn.connect(ctx.destination);
+    shatterSrc.start(now);
+    shatterSrc.stop(now + shatterDelay + shatterDur);
+
+    // === 5. METALLIC CLANG — camera tripod hitting the ground ===
+    const clangDelay = 0.10;
+    const clangDur = 0.8;
+    const clangGn = ctx.createGain();
+    clangGn.connect(ctx.destination);
+    clangGn.gain.setValueAtTime(0, now);
+    clangGn.gain.setValueAtTime(0.4, now + clangDelay);
+    clangGn.gain.exponentialRampToValueAtTime(0.01, now + clangDelay + clangDur);
+    for (const freq of [780, 1280]) {
+        const o = ctx.createOscillator();
+        o.type = 'square';
+        o.frequency.setValueAtTime(freq + Math.random() * 60, now + clangDelay);
+        o.frequency.exponentialRampToValueAtTime(freq * 0.35, now + clangDelay + clangDur);
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = freq;
+        bp.Q.value = 10;
+        o.connect(bp);
+        bp.connect(clangGn);
+        o.start(now + clangDelay);
+        o.stop(now + clangDelay + clangDur + 0.01);
+    }
+
+    // === 6. SECONDARY TUMBLE — rolling debris / things falling over ===
+    const tumbleDelay = 0.2;
+    const tumbleDur = 1.0 + t * 0.25;
+    const tumbleSize = ctx.sampleRate * tumbleDur | 0;
+    const tumbleBuf = ctx.createBuffer(1, tumbleSize, ctx.sampleRate);
+    const tumbleData = tumbleBuf.getChannelData(0);
+    for (let i = 0; i < tumbleSize; i++) {
+        const env = Math.exp(-i / (tumbleSize * 0.4));
+        const rattle = Math.sin(i / ctx.sampleRate * 2 * Math.PI * 22) > 0 ? 1 : 0.3;
+        tumbleData[i] = (Math.random() * 2 - 1) * env * rattle;
+    }
+    const tumbleSrc = ctx.createBufferSource();
+    tumbleSrc.buffer = tumbleBuf;
+    const tumbleGn = ctx.createGain();
+    tumbleGn.gain.setValueAtTime(0, now);
+    tumbleGn.gain.setValueAtTime(0.22, now + tumbleDelay);
+    tumbleGn.gain.exponentialRampToValueAtTime(0.01, now + tumbleDelay + tumbleDur);
+    const tumbleLP = ctx.createBiquadFilter();
+    tumbleLP.type = 'lowpass';
+    tumbleLP.frequency.value = 700;
+    tumbleSrc.connect(tumbleLP);
+    tumbleLP.connect(tumbleGn);
+    tumbleGn.connect(ctx.destination);
+    tumbleSrc.start(now + tumbleDelay);
+    tumbleSrc.stop(now + tumbleDelay + tumbleDur + 0.01);
+
+    // === 7. HUMAN MOANING/GROANING — always at least 2, up to 4 for worst crashes ===
+    const numMoans = 2 + Math.min(t - 1, 2); // tier 1=2, tier 2=3, tier 3+=4
+    for (let m = 0; m < numMoans; m++) {
+        // First moan comes quickly, rest are spaced out
+        const moanDelay = 0.35 + m * (0.55 + Math.random() * 0.4);
+        const moanDur = 0.7 + Math.random() * 0.6 + t * 0.12;
+        // Vary pitch: some higher (yelps), some lower (groans)
+        const isHighPitch = m === 0; // first one is a sharp yelp
+        const moanPitch = isHighPitch ? (180 + Math.random() * 80) : (85 + Math.random() * 50);
+
+        // Master gain — louder base volume so it's always audible
+        const moanMaster = ctx.createGain();
+        moanMaster.connect(ctx.destination);
+        const mVol = 0.30 + t * 0.04;
+        moanMaster.gain.setValueAtTime(0, now + moanDelay);
+        // First moan: sharp attack (yelp). Others: softer fade in
+        const attackTime = isHighPitch ? 0.04 : 0.15;
+        moanMaster.gain.linearRampToValueAtTime(mVol, now + moanDelay + attackTime);
+        moanMaster.gain.setValueAtTime(mVol * 0.85, now + moanDelay + moanDur * 0.5);
+        moanMaster.gain.exponentialRampToValueAtTime(0.01, now + moanDelay + moanDur);
+
+        // Voice source — sawtooth for groans, triangle for yelps
+        const voiceOsc = ctx.createOscillator();
+        voiceOsc.type = isHighPitch ? 'triangle' : 'sawtooth';
+        if (isHighPitch) {
+            // Yelp: starts high, drops fast
+            voiceOsc.frequency.setValueAtTime(moanPitch * 1.4, now + moanDelay);
+            voiceOsc.frequency.exponentialRampToValueAtTime(moanPitch * 0.6, now + moanDelay + moanDur * 0.3);
+            voiceOsc.frequency.linearRampToValueAtTime(moanPitch * 0.5, now + moanDelay + moanDur);
+        } else {
+            // Groan: slow descending pitch with wobble
+            voiceOsc.frequency.setValueAtTime(moanPitch * (1.05 + Math.random() * 0.1), now + moanDelay);
+            voiceOsc.frequency.linearRampToValueAtTime(moanPitch * (0.7 + Math.random() * 0.1), now + moanDelay + moanDur);
+        }
+
+        // Formant filters — cycle through vowel sounds
+        const vowels = [
+            { f1: 750, f2: 1200 },   // "aah" (yelp)
+            { f1: 400, f2: 850 },    // "ohh"
+            { f1: 300, f2: 650 },    // "uhh"
+            { f1: 500, f2: 1000 },   // "ehh"
+        ];
+        const vowel = vowels[m % vowels.length];
+
+        const formant1 = ctx.createBiquadFilter();
+        formant1.type = 'bandpass';
+        formant1.frequency.value = vowel.f1;
+        formant1.Q.value = 4;
+
+        const formant2 = ctx.createBiquadFilter();
+        formant2.type = 'bandpass';
+        formant2.frequency.value = vowel.f2;
+        formant2.Q.value = 4;
+
+        const fmtMix = ctx.createGain();
+        fmtMix.gain.value = 1.2;
+        voiceOsc.connect(formant1);
+        voiceOsc.connect(formant2);
+        formant1.connect(fmtMix);
+        formant2.connect(fmtMix);
+        fmtMix.connect(moanMaster);
+
+        voiceOsc.start(now + moanDelay);
+        voiceOsc.stop(now + moanDelay + moanDur + 0.01);
+
+        // Breathy noise layer — louder for realism
+        const breathDur = moanDur;
+        const breathSize = ctx.sampleRate * breathDur | 0;
+        const breathBuf = ctx.createBuffer(1, breathSize, ctx.sampleRate);
+        const breathData = breathBuf.getChannelData(0);
+        for (let i = 0; i < breathSize; i++) {
+            breathData[i] = (Math.random() * 2 - 1);
+        }
+        const breathSrc = ctx.createBufferSource();
+        breathSrc.buffer = breathBuf;
+        const breathGn = ctx.createGain();
+        const breathVol = isHighPitch ? 0.10 : 0.08;
+        breathGn.gain.setValueAtTime(0, now + moanDelay);
+        breathGn.gain.linearRampToValueAtTime(breathVol, now + moanDelay + attackTime);
+        breathGn.gain.exponentialRampToValueAtTime(0.01, now + moanDelay + breathDur);
+        const breathBP = ctx.createBiquadFilter();
+        breathBP.type = 'bandpass';
+        breathBP.frequency.value = vowel.f1 * 1.5;
+        breathBP.Q.value = 2;
+        breathSrc.connect(breathBP);
+        breathBP.connect(breathGn);
+        breathGn.connect(moanMaster);
+        breathSrc.start(now + moanDelay);
+        breathSrc.stop(now + moanDelay + breathDur + 0.01);
+    }
+
+    // === 8. LATE SETTLING — small thuds as debris settles (higher tiers) ===
+    if (t >= 2) {
+        const numThuds = t - 1; // 1-4 late thuds
+        for (let j = 0; j < numThuds; j++) {
+            const td = 1.2 + j * (0.3 + Math.random() * 0.25);
+            const tDur = 0.15;
+            const tGn = ctx.createGain();
+            tGn.connect(ctx.destination);
+            tGn.gain.setValueAtTime(0, now + td);
+            tGn.gain.setValueAtTime(0.15 - j * 0.03, now + td + 0.01);
+            tGn.gain.exponentialRampToValueAtTime(0.01, now + td + tDur);
+            const tOsc = ctx.createOscillator();
+            tOsc.type = 'sine';
+            tOsc.frequency.setValueAtTime(80 + j * 20, now + td);
+            tOsc.frequency.exponentialRampToValueAtTime(30, now + td + tDur);
+            tOsc.connect(tGn);
+            tOsc.start(now + td);
+            tOsc.stop(now + td + tDur + 0.01);
+        }
+    }
 }
 
 const CONFIG = {
@@ -2544,6 +2752,10 @@ class PlayScene extends Phaser.Scene {
             // Close to mark — crew nods approvingly
             this.crashAnimTime = (this.crashAnimTime || 0) + dt;
             this.drawCrewNodding(this.crashAnimTime);
+        } else if (this.scoreData && !this.scoreData.crashed && this.scoreData.distFeet > 6) {
+            // Way off mark — crew shakes heads in disappointment
+            this.crashAnimTime = (this.crashAnimTime || 0) + dt;
+            this.drawCrewDisappointed(this.crashAnimTime);
         }
     }
 
@@ -2641,6 +2853,118 @@ class PlayScene extends Phaser.Scene {
         g.beginPath();
         g.arc(x, headY + headR*0.25, headR*0.25, 0.2, Math.PI - 0.2);
         g.strokePath();
+    }
+
+    drawCrewDisappointed(t) {
+        const g = this.crewGfx; g.clear();
+        const H = CONFIG.PERSON_HEIGHT;
+        const ld = this.levelData;
+        const cy = ld.endY;
+        const camX = ld.cameraX;
+        this.drawCameraRig(g, camX, cy, 0, 0);
+
+        const crew1X = camX + 80, crew2X = camX + 160, crew3X = camX + 240;
+        const style1 = { skin: 0x8d5524, hair: 0x0a0808 };
+        const style2 = { skin: 0xc68642, hair: 0x2a1a0a };
+        const style3 = { skin: 0xf5d0a9, hair: 0x3a2a1a };
+        const cols = [0x4a4a5a, 0x5a4a3a, 0x2a2a3a];
+        const styles = [style1, style2, style3];
+        const xs = [crew1X, crew2X, crew3X];
+
+        for (let i = 0; i < 3; i++) {
+            const x = xs[i], cl = cols[i], st = styles[i];
+            const skin = st.skin, hair = st.hair;
+            const hipY = cy - H*0.28, shY = cy - H*0.64;
+            const headR = H*0.05;
+
+            // Legs — weight shifted, slouchy stance
+            g.lineStyle(H*0.035, cl, 1);
+            g.beginPath();
+            g.moveTo(x - H*0.03, hipY); g.lineTo(x - H*0.04, cy);
+            g.moveTo(x + H*0.03, hipY); g.lineTo(x + H*0.04, cy);
+            g.strokePath();
+            g.fillStyle(0x1a1a1a, 1);
+            g.fillRect(x - H*0.06, cy - H*0.008, H*0.05, H*0.02);
+            g.fillRect(x + H*0.02, cy - H*0.008, H*0.05, H*0.02);
+            // Torso — slight slump
+            const slump = Math.sin(t * 1.2 + i) * H*0.005;
+            g.lineStyle(H*0.10, cl, 1);
+            g.beginPath(); g.moveTo(x, hipY); g.lineTo(x + slump, shY); g.strokePath();
+
+            // Arms — crossed or hands on hips (disappointed body language)
+            if (i === 2) {
+                // Director: arms crossed
+                g.lineStyle(H*0.026, cl, 1);
+                g.beginPath();
+                g.moveTo(x - H*0.08, shY); g.lineTo(x + H*0.03, shY + H*0.12);
+                g.moveTo(x + H*0.08, shY); g.lineTo(x - H*0.03, shY + H*0.12);
+                g.strokePath();
+                g.lineStyle(H*0.022, skin, 1);
+                g.beginPath();
+                g.moveTo(x + H*0.03, shY + H*0.12); g.lineTo(x + H*0.07, shY + H*0.10);
+                g.moveTo(x - H*0.03, shY + H*0.12); g.lineTo(x - H*0.07, shY + H*0.10);
+                g.strokePath();
+            } else {
+                // Others: hands on hips
+                g.lineStyle(H*0.026, cl, 1);
+                g.beginPath();
+                g.moveTo(x - H*0.08, shY); g.lineTo(x - H*0.12, shY + H*0.18);
+                g.moveTo(x + H*0.08, shY); g.lineTo(x + H*0.12, shY + H*0.18);
+                g.strokePath();
+                g.lineStyle(H*0.022, skin, 1);
+                g.beginPath();
+                g.moveTo(x - H*0.12, shY + H*0.18); g.lineTo(x - H*0.06, hipY);
+                g.moveTo(x + H*0.12, shY + H*0.18); g.lineTo(x + H*0.06, hipY);
+                g.strokePath();
+            }
+
+            // Neck
+            g.fillStyle(skin, 1);
+            g.fillRect(x - H*0.014, shY - H*0.05, H*0.028, H*0.05);
+
+            // Head — SIDE-TO-SIDE SHAKE (horizontal oscillation)
+            // Each crew member shakes at slightly different phase and speed
+            const shakeSpeed = 5 + i * 0.8;
+            const shakeAmt = H*0.025 + (i === 2 ? H*0.01 : 0); // director shakes harder
+            const shake = Math.sin(t * shakeSpeed + i * 2.0) * shakeAmt;
+            // Slight head tilt follows the shake direction
+            const headTilt = shake * 0.004;
+            const headX = x + shake;
+            const headY = shY - H*0.10;
+
+            g.fillStyle(hair, 1);
+            g.fillCircle(headX, headY, headR);
+            g.fillStyle(skin, 1);
+            g.fillCircle(headX, headY + headR*0.15, headR*0.82);
+
+            // Eyes — looking down and away (disappointed, not making eye contact)
+            const lookDir = shake > 0 ? 0.5 : -0.5; // eyes drift with shake
+            const eyeShiftX = lookDir * headR * 0.08;
+            const eyeDropY = headR * 0.06; // looking down
+            g.fillStyle(0xffffff, 1);
+            g.fillCircle(headX - headR*0.3, headY + eyeDropY, headR*0.14);
+            g.fillCircle(headX + headR*0.3, headY + eyeDropY, headR*0.14);
+            g.fillStyle(0x222222, 1);
+            g.fillCircle(headX - headR*0.28 + eyeShiftX, headY + eyeDropY + headR*0.04, headR*0.07);
+            g.fillCircle(headX + headR*0.28 + eyeShiftX, headY + eyeDropY + headR*0.04, headR*0.07);
+
+            // Eyebrows — furrowed / raised in the middle (concern/disappointment)
+            g.lineStyle(H*0.004, hair, 0.7);
+            g.beginPath();
+            // Left eyebrow — inner end raised
+            g.moveTo(headX - headR*0.42, headY - headR*0.15);
+            g.lineTo(headX - headR*0.15, headY - headR*0.22);
+            // Right eyebrow — inner end raised
+            g.moveTo(headX + headR*0.42, headY - headR*0.15);
+            g.lineTo(headX + headR*0.15, headY - headR*0.22);
+            g.strokePath();
+
+            // Mouth — frown (inverted arc)
+            g.lineStyle(H*0.003, 0x995544, 0.6);
+            g.beginPath();
+            g.arc(headX, headY + headR*0.55, headR*0.18, Math.PI + 0.3, -0.3);
+            g.strokePath();
+        }
     }
 
     drawCrewNodding(t) {
